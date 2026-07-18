@@ -1,0 +1,82 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+function decodeJwtPayload(token: string) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    // Decode base64url payload
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
+export function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const token = request.cookies.get('token')?.value;
+
+  const isAuthPage = path === '/login' || path === '/register';
+  const isAdminPage = path.startsWith('/admin');
+  const isStudentPage = path.startsWith('/dashboard') || path.startsWith('/practice');
+
+  if (!token) {
+    // If not authenticated and trying to access protected page, redirect to login
+    if (isAdminPage || isStudentPage) {
+      const loginUrl = new URL('/login', request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
+  }
+
+  const payload = decodeJwtPayload(token);
+  if (!payload) {
+    // Token is corrupt, clear it and redirect to login
+    if (isAdminPage || isStudentPage) {
+      const response = NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.delete('token');
+      return response;
+    }
+    return NextResponse.next();
+  }
+
+  // Redirect authenticated users away from login/register
+  if (isAuthPage) {
+    if (payload.role === 'ADMIN') {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    } else {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
+  // Authorize Admin pages
+  if (isAdminPage && payload.role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  // Authorize Student pages
+  if (isStudentPage && payload.role !== 'STUDENT') {
+    return NextResponse.redirect(new URL('/admin', request.url));
+  }
+
+  return NextResponse.next();
+}
+
+// Config to specify matching routes
+export const config = {
+  matcher: [
+    '/admin/:path*',
+    '/dashboard/:path*',
+    '/practice/:path*',
+    '/login',
+    '/register',
+  ],
+};

@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --background: #111215;
+  --foreground: #d1d0c5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111215;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2c2e35;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f59e0b;
+}
+
+/* Custom Text Selection */
+::selection {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
