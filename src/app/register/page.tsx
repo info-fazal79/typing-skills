@@ -21,7 +21,9 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
 
   // Metadata for Selectors
-  const [metadata, setMetadata] = useState<{ courses: Record<string, string[]>, rollNumbers: string[] } | null>(null);
+  const [metadata, setMetadata] = useState<{ courses: Record<string, string[]> } | null>(null);
+  const [availableRolls, setAvailableRolls] = useState<string[]>([]);
+  const [fetchingRolls, setFetchingRolls] = useState(false);
   
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -42,6 +44,30 @@ export default function RegisterPage() {
   useEffect(() => {
     setBatchName('');
   }, [courseName]);
+
+  // Fetch unassigned roll numbers when batch changes
+  useEffect(() => {
+    setRollNumber('');
+    setAvailableRolls([]);
+    
+    if (!batchName) return;
+
+    const fetchAvailableRolls = async () => {
+      setFetchingRolls(true);
+      try {
+        const res = await fetch(`/api/auth/available-rolls?batchName=${encodeURIComponent(batchName)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableRolls(data.availableRolls || []);
+        }
+      } catch (err) {
+        console.error("Failed to load available rolls", err);
+      } finally {
+        setFetchingRolls(false);
+      }
+    };
+    fetchAvailableRolls();
+  }, [batchName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,10 +292,13 @@ export default function RegisterPage() {
                     required
                     value={rollNumber}
                     onChange={(e) => setRollNumber(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#111215] border border-neutral-800 text-neutral-100 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
+                    disabled={!batchName || fetchingRolls}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#111215] border border-neutral-800 text-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
                   >
-                    <option value="">-- Select Roll --</option>
-                    {metadata?.rollNumbers && metadata.rollNumbers.map(r => (
+                    <option value="">
+                      {!batchName ? '-- Select Batch First --' : fetchingRolls ? 'Loading...' : '-- Select Roll --'}
+                    </option>
+                    {availableRolls.map(r => (
                       <option key={r} value={r}>{r}</option>
                     ))}
                   </select>

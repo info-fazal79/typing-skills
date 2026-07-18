@@ -17,12 +17,13 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [metadata, setMetadata] = useState<{ courses: Record<string, string[]>, rollNumbers: string[] }>({ courses: {}, rollNumbers: [] });
+  const [metadata, setMetadata] = useState<{ courses: Record<string, string[]>, rollNumbersByBatch: Record<string, string[]> }>({ courses: {}, rollNumbersByBatch: {} });
 
   // Metadata Form States
   const [newCourse, setNewCourse] = useState('');
   const [selectedCourseForBatch, setSelectedCourseForBatch] = useState('');
   const [newBatch, setNewBatch] = useState('');
+  const [selectedBatchForRoll, setSelectedBatchForRoll] = useState('');
   const [newRoll, setNewRoll] = useState('');
 
 
@@ -77,7 +78,7 @@ export default function AdminPage() {
       const metadataData = await metadataRes.json();
       setMetadata({
         courses: metadataData.courses || {},
-        rollNumbers: metadataData.rollNumbers || []
+        rollNumbersByBatch: metadataData.rollNumbersByBatch || {}
       });
 
     } catch (e) {
@@ -935,76 +936,109 @@ export default function AdminPage() {
                 <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-800/80 flex flex-col gap-6">
                   <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
                     <Users size={16} className="text-amber-500" />
-                    Allowed Roll Numbers
+                    Allowed Roll Numbers by Batch
                   </h3>
                   
-                  {/* Add Roll */}
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newRoll}
-                      onChange={(e) => setNewRoll(e.target.value)}
-                      placeholder="e.g. IT-101 (comma separate for multiple)"
-                      className="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40 font-mono"
-                    />
-                    <button
-                      onClick={() => {
-                        if (!newRoll.trim()) return;
-                        const rollsToAdd = newRoll.split(',').map(r => r.trim()).filter(Boolean);
-                        const uniqueNewRolls = rollsToAdd.filter(r => !metadata.rollNumbers.includes(r));
-                        if (uniqueNewRolls.length === 0) {
-                          setError('Roll number(s) already exist');
-                          return;
-                        }
-                        handleSaveMetadata({
-                          ...metadata,
-                          rollNumbers: [...metadata.rollNumbers, ...uniqueNewRolls].sort()
-                        });
-                        setNewRoll('');
-                      }}
-                      className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                  {/* Select Batch for Rolls */}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Select Batch to Manage Rolls</span>
+                    <select
+                      value={selectedBatchForRoll}
+                      onChange={(e) => setSelectedBatchForRoll(e.target.value)}
+                      className="w-full bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40"
                     >
-                      Add Roll(s)
-                    </button>
+                      <option value="">-- Select a Batch --</option>
+                      {Object.values(metadata.courses).flat().map((b) => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold">Total Roll Numbers: {metadata.rollNumbers.length}</span>
-                    <button
-                      onClick={() => {
-                        if (confirm('Clear all roll numbers?')) {
-                          handleSaveMetadata({ ...metadata, rollNumbers: [] });
-                        }
-                      }}
-                      className="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider"
-                    >
-                      Clear All
-                    </button>
-                  </div>
+                  {selectedBatchForRoll && (
+                    <>
+                      {/* Add Roll */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newRoll}
+                          onChange={(e) => setNewRoll(e.target.value)}
+                          placeholder="e.g. IT-101 (comma separate for multiple)"
+                          className="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40 font-mono"
+                        />
+                        <button
+                          onClick={() => {
+                            if (!newRoll.trim()) return;
+                            const rollsToAdd = newRoll.split(',').map(r => r.trim()).filter(Boolean);
+                            const currentRolls = metadata.rollNumbersByBatch[selectedBatchForRoll] || [];
+                            const uniqueNewRolls = rollsToAdd.filter(r => !currentRolls.includes(r));
+                            if (uniqueNewRolls.length === 0) {
+                              setError('Roll number(s) already exist in this batch');
+                              return;
+                            }
+                            handleSaveMetadata({
+                              ...metadata,
+                              rollNumbersByBatch: {
+                                ...metadata.rollNumbersByBatch,
+                                [selectedBatchForRoll]: [...currentRolls, ...uniqueNewRolls].sort()
+                              }
+                            });
+                            setNewRoll('');
+                          }}
+                          className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                        >
+                          Add Roll(s)
+                        </button>
+                      </div>
 
-                  {/* List Rolls */}
-                  <div className="flex flex-wrap gap-2 max-h-[500px] overflow-y-auto pr-2">
-                    {metadata.rollNumbers.length === 0 ? (
-                      <div className="text-center text-xs text-neutral-500 py-4 w-full">No roll numbers configured.</div>
-                    ) : (
-                      metadata.rollNumbers.map(roll => (
-                        <div key={roll} className="flex items-center gap-1.5 bg-neutral-900/50 px-2.5 py-1.5 rounded-md border border-neutral-800 text-xs font-mono text-neutral-300">
-                          {roll}
-                          <button
-                            onClick={() => {
-                              handleSaveMetadata({
-                                ...metadata,
-                                rollNumbers: metadata.rollNumbers.filter(r => r !== roll)
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold">Total Roll Numbers: {(metadata.rollNumbersByBatch[selectedBatchForRoll] || []).length}</span>
+                        <button
+                          onClick={() => {
+                            if (confirm('Clear all roll numbers for this batch?')) {
+                              handleSaveMetadata({ 
+                                ...metadata, 
+                                rollNumbersByBatch: {
+                                  ...metadata.rollNumbersByBatch,
+                                  [selectedBatchForRoll]: []
+                                }
                               });
-                            }}
-                            className="text-neutral-500 hover:text-red-400 ml-1"
-                          >
-                            <XCircle size={14} />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                            }
+                          }}
+                          className="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+
+                      {/* List Rolls */}
+                      <div className="flex flex-wrap gap-2 max-h-[500px] overflow-y-auto pr-2">
+                        {!(metadata.rollNumbersByBatch[selectedBatchForRoll] || []).length ? (
+                          <div className="text-center text-xs text-neutral-500 py-4 w-full">No roll numbers configured for this batch.</div>
+                        ) : (
+                          (metadata.rollNumbersByBatch[selectedBatchForRoll] || []).map(roll => (
+                            <div key={roll} className="flex items-center gap-1.5 bg-neutral-900/50 px-2.5 py-1.5 rounded-md border border-neutral-800 text-xs font-mono text-neutral-300">
+                              {roll}
+                              <button
+                                onClick={() => {
+                                  const currentRolls = metadata.rollNumbersByBatch[selectedBatchForRoll] || [];
+                                  handleSaveMetadata({
+                                    ...metadata,
+                                    rollNumbersByBatch: {
+                                      ...metadata.rollNumbersByBatch,
+                                      [selectedBatchForRoll]: currentRolls.filter(r => r !== roll)
+                                    }
+                                  });
+                                }}
+                                className="text-neutral-500 hover:text-red-400 ml-1"
+                              >
+                                <XCircle size={14} />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
 
               </div>

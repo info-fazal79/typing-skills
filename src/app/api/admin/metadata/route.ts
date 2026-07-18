@@ -9,7 +9,7 @@ export async function GET() {
     const doc = await docRef.get();
     
     if (!doc.exists) {
-      return NextResponse.json({ courses: {}, rollNumbers: [] });
+      return NextResponse.json({ courses: {}, rollNumbersByBatch: {} });
     }
     
     return NextResponse.json(doc.data());
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const data = await req.json();
     
     // Validate basic structure
-    if (typeof data !== 'object' || !data.courses || !Array.isArray(data.rollNumbers)) {
+    if (typeof data !== 'object' || !data.courses || !data.rollNumbersByBatch) {
       return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
     }
 

@@ -10,7 +10,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (user.role !== 'STUDENT') {
+    // Allow both STUDENT and USER roles.
+    if (user.role !== 'STUDENT' && user.role !== 'USER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -52,57 +53,60 @@ export async function GET(req: NextRequest) {
     );
 
     // Tasks assigned to the user's batch
-    const tasksSnap = await db
-      .collection('tasks')
-      .where('batches', 'array-contains', batchName)
-      .orderBy('deadline', 'asc')
-      .get();
+    let formattedTasks: any[] = [];
+    if (batchName) {
+      const tasksSnap = await db
+        .collection('tasks')
+        .where('batches', 'array-contains', batchName)
+        .orderBy('deadline', 'asc')
+        .get();
 
-    // Fetch submissions for this user
-    const submissionsSnap = await db
-      .collection('task_submissions')
-      .where('studentId', '==', user.id)
-      .get();
+      // Fetch submissions for this user
+      const submissionsSnap = await db
+        .collection('task_submissions')
+        .where('studentId', '==', user.id)
+        .get();
 
-    const submissionMap = new Map<string, any>();
-    submissionsSnap.docs.forEach((doc) => {
-      const d = doc.data();
-      submissionMap.set(d.taskId, d);
-    });
+      const submissionMap = new Map<string, any>();
+      submissionsSnap.docs.forEach((doc) => {
+        const d = doc.data();
+        submissionMap.set(d.taskId, d);
+      });
 
-    const formattedTasks = tasksSnap.docs.map((doc) => {
-      const task = doc.data();
-      const submission = submissionMap.get(doc.id);
-      const deadline = task.deadline?.toDate ? task.deadline.toDate() : new Date(task.deadline);
-      const status = submission
-        ? 'COMPLETED'
-        : new Date() > deadline
-        ? 'MISSED'
-        : 'PENDING';
+      formattedTasks = tasksSnap.docs.map((doc) => {
+        const task = doc.data();
+        const submission = submissionMap.get(doc.id);
+        const deadline = task.deadline?.toDate ? task.deadline.toDate() : new Date(task.deadline);
+        const status = submission
+          ? 'COMPLETED'
+          : new Date() > deadline
+          ? 'MISSED'
+          : 'PENDING';
 
-      return {
-        id: doc.id,
-        title: task.title,
-        textContent: task.textContent,
-        language: task.language,
-        targetWpm: task.targetWpm,
-        targetAccuracy: task.targetAccuracy,
-        deadline,
-        pointsAwardable: task.pointsAwardable,
-        status,
-        submission: submission
-          ? {
-              wpm: submission.wpm,
-              accuracy: submission.accuracy,
-              pointsEarned: submission.pointsEarned,
-              completedAt: submission.completedAt?.toDate
-                ? submission.completedAt.toDate()
-                : new Date(submission.completedAt),
-              isLate: submission.isLate,
-            }
-          : null,
-      };
-    });
+        return {
+          id: doc.id,
+          title: task.title,
+          textContent: task.textContent,
+          language: task.language,
+          targetWpm: task.targetWpm,
+          targetAccuracy: task.targetAccuracy,
+          deadline,
+          pointsAwardable: task.pointsAwardable,
+          status,
+          submission: submission
+            ? {
+                wpm: submission.wpm,
+                accuracy: submission.accuracy,
+                pointsEarned: submission.pointsEarned,
+                completedAt: submission.completedAt?.toDate
+                  ? submission.completedAt.toDate()
+                  : new Date(submission.completedAt),
+                isLate: submission.isLate,
+              }
+            : null,
+        };
+      });
+    }
 
     // Recent 15 sessions for WPM/accuracy trend chart
     const recentSessionsSnap = await db

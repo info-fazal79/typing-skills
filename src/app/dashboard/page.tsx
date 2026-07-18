@@ -325,13 +325,17 @@ export default function DashboardPage() {
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 p-6 rounded-2xl border border-neutral-800 bg-[#1d1e22]/20 flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Student Profile</span>
+              <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">
+                {user.role === 'STUDENT' ? 'Student Profile' : 'General Practice Profile'}
+              </span>
               <h1 className="text-2xl font-black text-neutral-100 leading-tight">{user.name}</h1>
-              <p className="text-xs text-neutral-500">
-                Course: <strong className="text-neutral-300 font-medium">{user.courseName}</strong> | 
-                Batch: <strong className="text-neutral-300 font-medium">{user.batchName}</strong> | 
-                Roll: <strong className="text-neutral-300 font-medium">{user.rollNumber}</strong>
-              </p>
+              {user.role === 'STUDENT' && (
+                <p className="text-xs text-neutral-500 mt-1">
+                  Course: <strong className="text-neutral-300 font-medium">{user.courseName || 'N/A'}</strong> | 
+                  Batch: <strong className="text-neutral-300 font-medium">{user.batchName || 'N/A'}</strong> | 
+                  Roll: <strong className="text-neutral-300 font-medium">{user.rollNumber || 'N/A'}</strong>
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2">

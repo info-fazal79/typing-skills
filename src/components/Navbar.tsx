@@ -86,7 +86,7 @@ export function Navbar() {
             Practice
           </Link>
           
-          {user && user.role === 'STUDENT' && (
+          {user && (user.role === 'STUDENT' || user.role === 'USER') && (
             <>
               <Link
                 href="/dashboard"
@@ -140,13 +140,17 @@ export function Navbar() {
               {/* User Dropdown / Label */}
               <div className="flex flex-col text-right hidden md:block">
                 <span className="text-xs font-bold text-neutral-200 leading-none">{user.name}</span>
-                <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold">
-                  {user.role === 'ADMIN' ? 'Administrator' : `Roll: ${user.rollNumber}`}
+                <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold mt-1">
+                  {user.role === 'ADMIN' 
+                    ? 'Administrator' 
+                    : user.role === 'STUDENT' && user.rollNumber 
+                      ? `Roll: ${user.rollNumber}` 
+                      : 'Practice User'}
                 </span>
               </div>
 
               {/* Mobile quick links */}
-              {user.role === 'STUDENT' && (
+              {(user.role === 'STUDENT' || user.role === 'USER') && (
                 <div className="flex sm:hidden gap-1">
                   <Link href="/dashboard" className="p-1.5 rounded-lg text-neutral-400 hover:text-amber-400 hover:bg-neutral-900" title="Dashboard">
                     <LayoutDashboard size={18} />

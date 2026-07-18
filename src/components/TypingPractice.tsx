@@ -25,6 +25,9 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const [isFocused, setIsFocused] = useState<boolean>(true);
   const [saveStatus, setSaveStatus] = useState<string>('');
+  
+  const [isCustomDuration, setIsCustomDuration] = useState<boolean>(false);
+  const [customDurationInput, setCustomDurationInput] = useState<string>('');
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -272,13 +275,16 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
           </div>
 
           {/* Duration Selector */}
-          <div className="flex gap-1 bg-neutral-950 p-1 rounded-lg">
+          <div className="flex gap-1 bg-neutral-950 p-1 rounded-lg items-center">
             {[15, 30, 60].map((t) => (
               <button
                 key={t}
-                onClick={() => setDuration(t)}
+                onClick={() => {
+                  setDuration(t);
+                  setIsCustomDuration(false);
+                }}
                 className={`px-3 py-1.5 rounded-md font-medium transition-all ${
-                  duration === t
+                  duration === t && !isCustomDuration
                     ? 'bg-neutral-800 text-amber-400'
                     : 'text-neutral-400 hover:text-neutral-200'
                 }`}
@@ -286,6 +292,48 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                 {t}s
               </button>
             ))}
+
+            {isCustomDuration ? (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const val = parseInt(customDurationInput);
+                  if (val > 0) setDuration(val);
+                }}
+                className="flex items-center ml-1"
+              >
+                <input
+                  type="number"
+                  min="1"
+                  max="3600"
+                  autoFocus
+                  value={customDurationInput}
+                  onChange={(e) => setCustomDurationInput(e.target.value)}
+                  onBlur={() => {
+                    const val = parseInt(customDurationInput);
+                    if (val > 0) setDuration(val);
+                  }}
+                  className="w-16 px-2 py-1 bg-neutral-900 border border-amber-500/50 text-amber-400 rounded focus:outline-hidden text-sm"
+                  placeholder="sec"
+                />
+              </form>
+            ) : (
+              <button
+                onClick={() => {
+                  setIsCustomDuration(true);
+                  if (![15, 30, 60].includes(duration)) {
+                    setCustomDurationInput(duration.toString());
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                  ![15, 30, 60].includes(duration)
+                    ? 'bg-neutral-800 text-amber-400'
+                    : 'text-neutral-400 hover:text-neutral-200'
+                }`}
+              >
+                {![15, 30, 60].includes(duration) ? `${duration}s` : 'Custom'}
+              </button>
+            )}
           </div>
         </div>
       )}
