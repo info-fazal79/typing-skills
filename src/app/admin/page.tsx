@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'approvals' | 'directory' | 'tasks' | 'targets'>('approvals');
+  const [activeTab, setActiveTab] = useState<'approvals' | 'directory' | 'tasks' | 'targets' | 'metadata'>('approvals');
   
   // Data States
   const [students, setStudents] = useState<any[]>([]);
@@ -17,6 +17,14 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [metadata, setMetadata] = useState<{ courses: Record<string, string[]>, rollNumbers: string[] }>({ courses: {}, rollNumbers: [] });
+
+  // Metadata Form States
+  const [newCourse, setNewCourse] = useState('');
+  const [selectedCourseForBatch, setSelectedCourseForBatch] = useState('');
+  const [newBatch, setNewBatch] = useState('');
+  const [newRoll, setNewRoll] = useState('');
+
 
   // Filter States for Student Directory
   const [filterCourse, setFilterCourse] = useState('');
@@ -64,6 +72,14 @@ export default function AdminPage() {
       const targetsData = await targetsRes.json();
       setTargets(targetsData.targets || []);
       
+      // 4. Fetch Metadata
+      const metadataRes = await fetch('/api/admin/metadata');
+      const metadataData = await metadataRes.json();
+      setMetadata({
+        courses: metadataData.courses || {},
+        rollNumbers: metadataData.rollNumbers || []
+      });
+
     } catch (e) {
       console.error('Error fetching admin details:', e);
       setError('Failed to load administration assets');
@@ -181,6 +197,28 @@ export default function AdminPage() {
     }
   };
 
+  // Update Metadata
+  const handleSaveMetadata = async (newMetadata: any) => {
+    setMessage('');
+    setError('');
+    try {
+      const res = await fetch('/api/admin/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMetadata),
+      });
+      if (res.ok) {
+        setMetadata(newMetadata);
+        setMessage('Registration options updated successfully.');
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to update metadata.');
+      }
+    } catch (e) {
+      setError('Failed to save metadata.');
+    }
+  };
+
   // Export CSV Report Client-Side
   const handleExportCSV = async () => {
     setMessage('Compiling report...');
@@ -293,6 +331,8 @@ export default function AdminPage() {
             { id: 'directory', label: 'Student Directory', count: students.length },
             { id: 'tasks', label: 'Task Assignments', count: tasks.length },
             { id: 'targets', label: 'Inactivity targets', count: targets.length },
+            { id: 'metadata', label: 'Registration Options', count: 0 },
+
           ].map((tab) => (
             <button
               key={tab.id}
@@ -754,6 +794,219 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* 5. Metadata/Selectors Management View */}
+            {activeTab === 'metadata' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Course & Batch Management */}
+                <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-800/80 flex flex-col gap-6">
+                  <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
+                    <BookOpen size={16} className="text-amber-500" />
+                    Courses & Batches
+                  </h3>
+                  
+                  {/* Add Course */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCourse}
+                      onChange={(e) => setNewCourse(e.target.value)}
+                      placeholder="New Course Name..."
+                      className="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40"
+                    />
+                    <button
+                      onClick={() => {
+                        if (!newCourse.trim()) return;
+                        if (metadata.courses[newCourse.trim()]) {
+                          setError('Course already exists');
+                          return;
+                        }
+                        handleSaveMetadata({
+                          ...metadata,
+                          courses: { ...metadata.courses, [newCourse.trim()]: [] }
+                        });
+                        setNewCourse('');
+                      }}
+                      className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                    >
+                      Add Course
+                    </button>
+                  </div>
+
+                  {/* Add Batch to Course */}
+                  <div className="flex flex-col gap-2 p-4 border border-neutral-800 rounded-xl bg-neutral-950/50">
+                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Add Batch to Course</span>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <select
+                        value={selectedCourseForBatch}
+                        onChange={(e) => setSelectedCourseForBatch(e.target.value)}
+                        className="bg-neutral-900 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40"
+                      >
+                        <option value="">Select Course...</option>
+                        {Object.keys(metadata.courses).map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={newBatch}
+                        onChange={(e) => setNewBatch(e.target.value)}
+                        placeholder="New Batch Name..."
+                        className="flex-1 bg-neutral-900 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40"
+                      />
+                      <button
+                        onClick={() => {
+                          if (!selectedCourseForBatch || !newBatch.trim()) return;
+                          const currentBatches = metadata.courses[selectedCourseForBatch] || [];
+                          if (currentBatches.includes(newBatch.trim())) {
+                            setError('Batch already exists in this course');
+                            return;
+                          }
+                          handleSaveMetadata({
+                            ...metadata,
+                            courses: {
+                              ...metadata.courses,
+                              [selectedCourseForBatch]: [...currentBatches, newBatch.trim()]
+                            }
+                          });
+                          setNewBatch('');
+                        }}
+                        className="bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-neutral-950 border border-amber-500/20 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                      >
+                        Add Batch
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* List Courses & Batches */}
+                  <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-2">
+                    {Object.keys(metadata.courses).length === 0 ? (
+                      <div className="text-center text-xs text-neutral-500 py-4">No courses configured.</div>
+                    ) : (
+                      Object.entries(metadata.courses).map(([course, batches]) => (
+                        <div key={course} className="flex flex-col gap-2 p-3 rounded-xl border border-neutral-800 bg-neutral-900/40">
+                          <div className="flex justify-between items-center border-b border-neutral-800 pb-2">
+                            <span className="font-bold text-sm text-neutral-200">{course}</span>
+                            <button
+                              onClick={() => {
+                                const newCourses = { ...metadata.courses };
+                                delete newCourses[course];
+                                handleSaveMetadata({ ...metadata, courses: newCourses });
+                              }}
+                              className="text-red-400 hover:text-red-300 bg-red-400/10 p-1.5 rounded-lg transition-colors"
+                              title="Delete Course"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {batches.length === 0 ? (
+                              <span className="text-xs text-neutral-600 italic">No batches yet.</span>
+                            ) : (
+                              batches.map(batch => (
+                                <div key={batch} className="flex items-center gap-1.5 bg-neutral-950 px-2.5 py-1 rounded-md border border-neutral-800 text-xs font-mono text-neutral-400">
+                                  {batch}
+                                  <button
+                                    onClick={() => {
+                                      const updatedBatches = batches.filter(b => b !== batch);
+                                      handleSaveMetadata({
+                                        ...metadata,
+                                        courses: { ...metadata.courses, [course]: updatedBatches }
+                                      });
+                                    }}
+                                    className="text-neutral-500 hover:text-red-400 ml-1"
+                                  >
+                                    <XCircle size={12} />
+                                  </button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Roll Numbers Management */}
+                <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-800/80 flex flex-col gap-6">
+                  <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
+                    <Users size={16} className="text-amber-500" />
+                    Allowed Roll Numbers
+                  </h3>
+                  
+                  {/* Add Roll */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newRoll}
+                      onChange={(e) => setNewRoll(e.target.value)}
+                      placeholder="e.g. IT-101 (comma separate for multiple)"
+                      className="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40 font-mono"
+                    />
+                    <button
+                      onClick={() => {
+                        if (!newRoll.trim()) return;
+                        const rollsToAdd = newRoll.split(',').map(r => r.trim()).filter(Boolean);
+                        const uniqueNewRolls = rollsToAdd.filter(r => !metadata.rollNumbers.includes(r));
+                        if (uniqueNewRolls.length === 0) {
+                          setError('Roll number(s) already exist');
+                          return;
+                        }
+                        handleSaveMetadata({
+                          ...metadata,
+                          rollNumbers: [...metadata.rollNumbers, ...uniqueNewRolls].sort()
+                        });
+                        setNewRoll('');
+                      }}
+                      className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                    >
+                      Add Roll(s)
+                    </button>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold">Total Roll Numbers: {metadata.rollNumbers.length}</span>
+                    <button
+                      onClick={() => {
+                        if (confirm('Clear all roll numbers?')) {
+                          handleSaveMetadata({ ...metadata, rollNumbers: [] });
+                        }
+                      }}
+                      className="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+
+                  {/* List Rolls */}
+                  <div className="flex flex-wrap gap-2 max-h-[500px] overflow-y-auto pr-2">
+                    {metadata.rollNumbers.length === 0 ? (
+                      <div className="text-center text-xs text-neutral-500 py-4 w-full">No roll numbers configured.</div>
+                    ) : (
+                      metadata.rollNumbers.map(roll => (
+                        <div key={roll} className="flex items-center gap-1.5 bg-neutral-900/50 px-2.5 py-1.5 rounded-md border border-neutral-800 text-xs font-mono text-neutral-300">
+                          {roll}
+                          <button
+                            onClick={() => {
+                              handleSaveMetadata({
+                                ...metadata,
+                                rollNumbers: metadata.rollNumbers.filter(r => r !== roll)
+                              });
+                            }}
+                            className="text-neutral-500 hover:text-red-400 ml-1"
+                          >
+                            <XCircle size={14} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
               </div>
             )}
           </>

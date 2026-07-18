@@ -27,6 +27,9 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   const [saveStatus, setSaveStatus] = useState<string>('');
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const charsRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const [caretPos, setCaretPos] = useState({ x: 0, y: 0, height: 28, opacity: 0 });
 
   // Generate text when mode, language, or task initial text changes
   useEffect(() => {
@@ -56,6 +59,22 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
       inputRef.current.focus();
     }
   }, [isFocused, text]);
+
+  // Update Caret Position
+  useEffect(() => {
+    // Determine active index
+    const activeIndex = typedText.length;
+    const activeSpan = charsRef.current[activeIndex];
+    
+    if (activeSpan) {
+      setCaretPos({
+        x: activeSpan.offsetLeft,
+        y: activeSpan.offsetTop,
+        height: activeSpan.offsetHeight,
+        opacity: isFocused && !isCompleted ? 1 : 0
+      });
+    }
+  }, [typedText, text, isFocused, isCompleted]);
 
   const handleReset = () => {
     resetEngine(duration);
@@ -155,15 +174,11 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
         }
       }
 
-      // Add Caret style to active letter
-      if (index === typedText.length) {
-        caretClass = 'border-l-2 border-amber-400 animate-[caretBlink_1s_infinite]';
-      }
-
       return (
         <span
           key={index}
-          className={`font-mono text-xl sm:text-2xl transition-all duration-75 relative ${colorClass} ${caretClass}`}
+          ref={(el) => { charsRef.current[index] = el; }}
+          className={`font-mono text-xl sm:text-2xl transition-all duration-75 ${colorClass}`}
         >
           {char}
         </span>
@@ -318,7 +333,23 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
           </div>
 
           {/* Words Area */}
-          <div className="w-full mt-6 select-text tracking-wide leading-relaxed break-words whitespace-pre-wrap max-h-[160px] overflow-y-auto pr-2">
+          <div 
+            ref={containerRef}
+            className="w-full mt-6 select-text tracking-wide leading-relaxed break-words whitespace-pre-wrap max-h-[160px] overflow-y-auto pr-2 relative"
+          >
+            {/* Smooth Gliding Caret */}
+            <div 
+              className="absolute bg-amber-400 rounded-full transition-all duration-100 ease-out z-10 animate-pulse pointer-events-none"
+              style={{ 
+                left: 0, 
+                top: 0, 
+                width: '3px',
+                height: `${caretPos.height}px`,
+                transform: `translate(${caretPos.x}px, ${caretPos.y}px)`,
+                opacity: caretPos.opacity,
+              }}
+            />
+            
             {renderCharacters()}
           </div>
 

@@ -12,35 +12,47 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const filterBatch = searchParams.get('batch');
 
-    // Overall leaderboard: top 50 approved students by points
-    const overallSnap = await db
+    // General leaderboard: top 50 users (role: USER, status: APPROVED)
+    const generalSnap = await db
       .collection('users')
-      .where('role', '==', 'STUDENT')
+      .where('role', '==', 'USER')
       .where('status', '==', 'APPROVED')
       .orderBy('points', 'desc')
       .limit(50)
       .get();
 
-    const overall = overallSnap.docs.map((doc) => {
+    const general = generalSnap.docs.map((doc) => {
       const d = doc.data();
       return {
         id: doc.id,
         name: d.name,
-        courseName: d.courseName,
-        batchName: d.batchName,
-        rollNumber: d.rollNumber,
         points: d.points ?? 0,
       };
     });
 
-    // Collect unique batch names from overall results
-    const batchSet = new Set<string>();
-    overall.forEach((s) => { if (s.batchName) batchSet.add(s.batchName); });
-    const batchList = Array.from(batchSet).sort();
+    // Student Leaderboard Setup (Batches)
+    // First we need all batches to populate the dropdown
+    // Since we don't want to query all students to find unique batches, we can fetch from metadata
+    let batchList: string[] = [];
+    try {
+      const metadataSnap = await db.collection('metadata').doc('selectors').get();
+      if (metadataSnap.exists) {
+        const metadataData = metadataSnap.data() as { courses: Record<string, string[]> };
+        if (metadataData && metadataData.courses) {
+          const allBatches = new Set<string>();
+          Object.values(metadataData.courses).forEach((batches) => {
+            batches.forEach(b => allBatches.add(b));
+          });
+          batchList = Array.from(allBatches).sort();
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch metadata for batches", e);
+    }
 
-    // Batch leaderboard
-    const selectedBatch = filterBatch || user.batchName || '';
-    let batchLeaderboard: typeof overall = [];
+    // Batch leaderboard (role: STUDENT, status: APPROVED, filtered by batchName)
+    const selectedBatch = filterBatch || user.batchName || (batchList.length > 0 ? batchList[0] : '');
+    let batchLeaderboard: any[] = [];
 
     if (selectedBatch) {
       const batchSnap = await db
@@ -66,7 +78,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      overall,
+      general,
       batch: batchLeaderboard,
       selectedBatch,
       batches: batchList,

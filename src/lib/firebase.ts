@@ -14,8 +14,14 @@ function getApp(): App {
       if (!serviceAccount) {
         throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
       }
+      const parsed = JSON.parse(serviceAccount);
+      if (parsed.private_key) {
+        // Vercel sometimes escapes newlines in env variables
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      }
+
       _app = initializeApp({
-        credential: cert(JSON.parse(serviceAccount)),
+        credential: cert(parsed),
       });
     } else {
       _app = getApps()[0];

@@ -5,11 +5,11 @@ import bcrypt from 'bcryptjs';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, password, courseName, batchName, rollNumber } = body;
+    const { name, email, password, registrationType, courseName, batchName, rollNumber } = body;
 
-    if (!name || !email || !password || !courseName || !batchName || !rollNumber) {
+    if (!name || !email || !password || !registrationType) {
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { error: 'Name, email, password, and registration type are required' },
         { status: 400 }
       );
     }
@@ -30,35 +30,76 @@ export async function POST(req: Request) {
       );
     }
 
+    // Additional validation for Student Registration
+    if (registrationType === 'STUDENT') {
+      if (!courseName || !batchName || !rollNumber) {
+        return NextResponse.json(
+          { error: 'Course, Batch, and Roll Number are required for Student Registration' },
+          { status: 400 }
+        );
+      }
+
+      // Verify Roll Number is not already registered in the same batch
+      const existingRoll = await db
+        .collection('users')
+        .where('batchName', '==', batchName.trim())
+        .where('rollNumber', '==', rollNumber.trim())
+        .limit(1)
+        .get();
+
+      if (!existingRoll.empty) {
+        return NextResponse.json(
+          { error: `Roll number ${rollNumber} is already registered in ${batchName}` },
+          { status: 400 }
+        );
+      }
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
     const userId = crypto.randomUUID();
     const now = new Date();
 
-    const userData = {
+    let userData: any = {
       name: name.trim(),
       email: emailLower,
       passwordHash,
-      role: 'STUDENT',
-      courseName: courseName.trim(),
-      batchName: batchName.trim(),
-      rollNumber: rollNumber.trim(),
-      status: 'PENDING',
-      points: 0,
-      lastPenaltyCheck: now,
       createdAt: now,
       updatedAt: now,
     };
+
+    if (registrationType === 'STUDENT') {
+      userData = {
+        ...userData,
+        role: 'STUDENT',
+        status: 'PENDING',
+        courseName: courseName.trim(),
+        batchName: batchName.trim(),
+        rollNumber: rollNumber.trim(),
+        points: 0,
+        lastPenaltyCheck: now,
+      };
+    } else {
+      userData = {
+        ...userData,
+        role: 'USER',
+        status: 'APPROVED',
+        points: 0, // General users can also have points
+      };
+    }
 
     await db.collection('users').doc(userId).set(userData);
 
     return NextResponse.json(
       {
-        message: 'Registration successful. Pending admin approval.',
+        message: registrationType === 'STUDENT' 
+          ? 'Registration successful. Pending admin approval.' 
+          : 'Registration successful. You can now log in.',
         user: {
           id: userId,
           name: userData.name,
           email: userData.email,
           status: userData.status,
+          role: userData.role,
         },
       },
       { status: 201 }

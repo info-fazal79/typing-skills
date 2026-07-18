@@ -7,7 +7,7 @@ import { Trophy, Award, Search, Users, ChevronRight, Crown } from 'lucide-react'
 export default function LeaderboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overall' | 'batch'>('overall');
+  const [activeTab, setActiveTab] = useState<'general' | 'batch'>('general');
   const [selectedBatch, setSelectedBatch] = useState<string>('');
   const [error, setError] = useState('');
 
@@ -73,8 +73,8 @@ export default function LeaderboardPage() {
     );
   }
 
-  const { overall, batch, batches } = data;
-  const listToRender = activeTab === 'overall' ? overall : batch;
+  const { general, batch, batches } = data;
+  const listToRender = activeTab === 'general' ? general : batch;
 
   const renderRankBadge = (rank: number) => {
     if (rank === 1) {
@@ -121,15 +121,15 @@ export default function LeaderboardPage() {
           {/* Tab buttons */}
           <div className="flex bg-neutral-950 p-1 rounded-lg w-full sm:w-max">
             <button
-              onClick={() => setActiveTab('overall')}
+              onClick={() => setActiveTab('general')}
               className={`flex-1 sm:flex-none px-4 py-2 rounded-md font-semibold text-xs transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'overall'
+                activeTab === 'general'
                   ? 'bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/20'
                   : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
               <Award size={14} />
-              Overall Standings
+              General Leaderboard
             </button>
             <button
               onClick={() => setActiveTab('batch')}
@@ -176,10 +176,14 @@ export default function LeaderboardPage() {
                 <thead>
                   <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
                     <th className="py-4 px-6 text-center w-16">Rank</th>
-                    <th className="py-4 px-6">Student Name</th>
-                    <th className="py-4 px-6">Course</th>
-                    <th className="py-4 px-6">Batch</th>
-                    <th className="py-4 px-6">Roll Number</th>
+                    <th className="py-4 px-6">Name</th>
+                    {activeTab === 'batch' && (
+                      <>
+                        <th className="py-4 px-6">Course</th>
+                        <th className="py-4 px-6">Batch</th>
+                        <th className="py-4 px-6">Roll Number</th>
+                      </>
+                    )}
                     <th className="py-4 px-6 text-right pr-8 w-28">Score</th>
                   </tr>
                 </thead>
@@ -191,13 +195,17 @@ export default function LeaderboardPage() {
                     >
                       <td className="py-4 px-6 text-center">{renderRankBadge(index + 1)}</td>
                       <td className="py-4 px-6 font-bold text-neutral-200">{student.name}</td>
-                      <td className="py-4 px-6 text-neutral-400">{student.courseName || 'N/A'}</td>
-                      <td className="py-4 px-6 text-neutral-400">
-                        <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[10px] font-semibold text-neutral-300">
-                          {student.batchName || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 font-mono text-neutral-400 text-[11px]">{student.rollNumber || 'N/A'}</td>
+                      {activeTab === 'batch' && (
+                        <>
+                          <td className="py-4 px-6 text-neutral-400">{student.courseName || 'N/A'}</td>
+                          <td className="py-4 px-6 text-neutral-400">
+                            <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[10px] font-semibold text-neutral-300">
+                              {student.batchName || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 font-mono text-neutral-400 text-[11px]">{student.rollNumber || 'N/A'}</td>
+                        </>
+                      )}
                       <td className="py-4 px-6 text-right pr-8 font-bold font-mono text-amber-400 text-sm">
                         {student.points} <span className="text-[10px] text-neutral-500 font-semibold uppercase">pts</span>
                       </td>
