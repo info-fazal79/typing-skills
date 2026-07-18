@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/firebase';
 import { getUserFromRequest } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
@@ -9,71 +9,66 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all students and their session aggregates
-    const students = await prisma.user.findMany({
-      where: { role: 'STUDENT' },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        courseName: true,
-        batchName: true,
-        rollNumber: true,
-        status: true,
-        points: true,
-        createdAt: true,
-        sessions: {
-          select: {
-            wpm: true,
-            accuracy: true,
-            duration: true,
-          },
-        },
-        submissions: {
-          select: {
-            taskId: true,
-            wpm: true,
-            accuracy: true,
-            isLate: true,
-          },
-        },
-      },
-      orderBy: { points: 'desc' },
-    });
+    // Fetch all students
+    const studentsSnap = await db
+      .collection('users')
+      .where('role', '==', 'STUDENT')
+      .get();
 
-    const reportData = students.map((student) => {
-      const sessionCount = student.sessions.length;
-      const totalDurationSeconds = student.sessions.reduce((sum, s) => sum + s.duration, 0);
-      const totalPracticeMinutes = Math.round(totalDurationSeconds / 60);
+    const reportData = await Promise.all(
+      studentsSnap.docs.map(async (doc) => {
+        const student = doc.data();
 
-      // Average speed and accuracy
-      const avgWpm = sessionCount > 0
-        ? Math.round(student.sessions.reduce((sum, s) => sum + s.wpm, 0) / sessionCount * 10) / 10
-        : 0;
+        // Fetch all practice sessions for this student
+        const sessionsSnap = await db
+          .collection('practice_sessions')
+          .where('userId', '==', doc.id)
+          .get();
 
-      const avgAccuracy = sessionCount > 0
-        ? Math.round(student.sessions.reduce((sum, s) => sum + s.accuracy, 0) / sessionCount * 10) / 10
-        : 0;
+        const sessions = sessionsSnap.docs.map((s) => s.data());
+        const sessionCount = sessions.length;
+        const totalDurationSeconds = sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0);
+        const totalPracticeMinutes = Math.round(totalDurationSeconds / 60);
+        const avgWpm =
+          sessionCount > 0
+            ? Math.round((sessions.reduce((sum, s) => sum + s.wpm, 0) / sessionCount) * 10) / 10
+            : 0;
+        const avgAccuracy =
+          sessionCount > 0
+            ? Math.round((sessions.reduce((sum, s) => sum + s.accuracy, 0) / sessionCount) * 10) / 10
+            : 0;
 
-      const taskCompletions = student.submissions.length;
+        // Count task submissions
+        const submissionsSnap = await db
+          .collection('task_submissions')
+          .where('studentId', '==', doc.id)
+          .get();
 
-      return {
-        id: student.id,
-        name: student.name,
-        email: student.email,
-        course: student.courseName || 'N/A',
-        batch: student.batchName || 'N/A',
-        rollNumber: student.rollNumber || 'N/A',
-        status: student.status,
-        points: student.points,
-        totalSessions: sessionCount,
-        averageWpm: avgWpm,
-        averageAccuracy: avgAccuracy,
-        totalMinutesPracticed: totalPracticeMinutes,
-        taskCompletions: taskCompletions,
-        joinDate: new Date(student.createdAt).toLocaleDateString(),
-      };
-    });
+        const createdAt = student.createdAt?.toDate
+          ? student.createdAt.toDate()
+          : new Date(student.createdAt);
+
+        return {
+          id: doc.id,
+          name: student.name,
+          email: student.email,
+          course: student.courseName || 'N/A',
+          batch: student.batchName || 'N/A',
+          rollNumber: student.rollNumber || 'N/A',
+          status: student.status,
+          points: student.points ?? 0,
+          totalSessions: sessionCount,
+          averageWpm: avgWpm,
+          averageAccuracy: avgAccuracy,
+          totalMinutesPracticed: totalPracticeMinutes,
+          taskCompletions: submissionsSnap.size,
+          joinDate: createdAt.toLocaleDateString(),
+        };
+      })
+    );
+
+    // Sort by points descending
+    reportData.sort((a, b) => b.points - a.points);
 
     return NextResponse.json({ report: reportData });
   } catch (error: any) {

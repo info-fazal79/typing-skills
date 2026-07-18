@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/firebase';
 import { getUserFromRequest } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
@@ -12,62 +12,61 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const filterBatch = searchParams.get('batch');
 
-    // Fetch overall leaderboard
-    const overallLeaderboard = await prisma.user.findMany({
-      where: {
-        role: 'STUDENT',
-        status: 'APPROVED',
-      },
-      select: {
-        id: true,
-        name: true,
-        courseName: true,
-        batchName: true,
-        rollNumber: true,
-        points: true,
-      },
-      orderBy: { points: 'desc' },
-      take: 50,
+    // Overall leaderboard: top 50 approved students by points
+    const overallSnap = await db
+      .collection('users')
+      .where('role', '==', 'STUDENT')
+      .where('status', '==', 'APPROVED')
+      .orderBy('points', 'desc')
+      .limit(50)
+      .get();
+
+    const overall = overallSnap.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        name: d.name,
+        courseName: d.courseName,
+        batchName: d.batchName,
+        rollNumber: d.rollNumber,
+        points: d.points ?? 0,
+      };
     });
 
-    // Fetch batch list for the filter dropdown
-    const batches = await prisma.user.findMany({
-      where: {
-        role: 'STUDENT',
-        status: 'APPROVED',
-        batchName: { not: null },
-      },
-      select: { batchName: true },
-      distinct: ['batchName'],
-    });
-    const batchList = batches.map(b => b.batchName).filter(Boolean) as string[];
+    // Collect unique batch names from overall results
+    const batchSet = new Set<string>();
+    overall.forEach((s) => { if (s.batchName) batchSet.add(s.batchName); });
+    const batchList = Array.from(batchSet).sort();
 
-    // Fetch batch-wise leaderboard
-    let batchLeaderboard: any[] = [];
-    let selectedBatch = filterBatch || user.batchName || '';
+    // Batch leaderboard
+    const selectedBatch = filterBatch || user.batchName || '';
+    let batchLeaderboard: typeof overall = [];
 
     if (selectedBatch) {
-      batchLeaderboard = await prisma.user.findMany({
-        where: {
-          role: 'STUDENT',
-          status: 'APPROVED',
-          batchName: selectedBatch,
-        },
-        select: {
-          id: true,
-          name: true,
-          courseName: true,
-          batchName: true,
-          rollNumber: true,
-          points: true,
-        },
-        orderBy: { points: 'desc' },
-        take: 50,
+      const batchSnap = await db
+        .collection('users')
+        .where('role', '==', 'STUDENT')
+        .where('status', '==', 'APPROVED')
+        .where('batchName', '==', selectedBatch)
+        .orderBy('points', 'desc')
+        .limit(50)
+        .get();
+
+      batchLeaderboard = batchSnap.docs.map((doc) => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          name: d.name,
+          courseName: d.courseName,
+          batchName: d.batchName,
+          rollNumber: d.rollNumber,
+          points: d.points ?? 0,
+        };
       });
     }
 
     return NextResponse.json({
-      overall: overallLeaderboard,
+      overall,
       batch: batchLeaderboard,
       selectedBatch,
       batches: batchList,

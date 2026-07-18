@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/firebase';
 import { signToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
@@ -17,17 +17,22 @@ export async function POST(req: Request) {
 
     const emailLower = email.toLowerCase().trim();
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email: emailLower },
-    });
+    // Find user by email
+    const usersSnap = await db
+      .collection('users')
+      .where('email', '==', emailLower)
+      .limit(1)
+      .get();
 
-    if (!user) {
+    if (usersSnap.empty) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
+
+    const userDoc = usersSnap.docs[0];
+    const user = { id: userDoc.id, ...userDoc.data() } as any;
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
@@ -38,7 +43,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if account is suspended/rejected
     if (user.status === 'REJECTED') {
       return NextResponse.json(
         { error: 'Your registration request was rejected by an administrator.' },
@@ -53,14 +57,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Sign JWT token
     const token = signToken({
       userId: user.id,
       role: user.role,
       email: user.email,
     });
 
-    // Create response
     const response = NextResponse.json({
       message: 'Login successful',
       user: {
@@ -76,12 +78,11 @@ export async function POST(req: Request) {
       },
     });
 
-    // Set cookie (valid for 7 days)
     response.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/firebase';
 import { getUserFromRequest } from '@/lib/auth';
 import { applyInactivityPenalties } from '@/lib/penalties';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Apply retrospective penalties first to ensure points sync
+    // Apply retrospective penalties first
     await applyInactivityPenalties(user.id);
 
     const body = await req.json();
@@ -27,42 +28,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
-    // Calculate points
-    // Formula: WPM * (Accuracy / 100) * (Duration / 30)
-    // Example: WPM 60, Accuracy 100%, 30s duration = 60 points
+    // Calculate points: WPM * (Accuracy/100) * (Duration/30), capped at 80
     const calculatedPoints = Math.round((wpm * (accuracy / 100)) * (duration / 30));
-    
-    // Capped points per session to prevent abuse (e.g. max 80 points)
     const pointsEarned = Math.max(0, Math.min(80, calculatedPoints));
 
-    // Save session & update user points
-    const [savedSession, updatedUser] = await prisma.$transaction([
-      prisma.practiceSession.create({
-        data: {
-          userId: user.id,
-          wpm: parseFloat(wpm),
-          accuracy: parseFloat(accuracy),
-          duration: parseInt(duration),
-          language: language.toUpperCase(),
-          mode,
-          pointsEarned,
-        },
-      }),
-      prisma.user.update({
-        where: { id: user.id },
-        data: {
-          points: {
-            increment: pointsEarned,
-          },
-        },
-      }),
-    ]);
+    const sessionId = crypto.randomUUID();
+    const now = new Date();
+
+    const sessionData = {
+      userId: user.id,
+      wpm: parseFloat(wpm),
+      accuracy: parseFloat(accuracy),
+      duration: parseInt(duration),
+      language: language.toUpperCase(),
+      mode,
+      pointsEarned,
+      createdAt: now,
+    };
+
+    // Atomic batch write: save session + increment user points
+    const batch = db.batch();
+    batch.set(db.collection('practice_sessions').doc(sessionId), sessionData);
+    batch.update(db.collection('users').doc(user.id), {
+      points: FieldValue.increment(pointsEarned),
+      updatedAt: now,
+    });
+    await batch.commit();
+
+    // Fetch updated points
+    const updatedUser = await db.collection('users').doc(user.id).get();
+    const newPointsTotal = updatedUser.data()?.points ?? user.points + pointsEarned;
 
     return NextResponse.json({
       message: 'Practice session saved successfully',
       pointsEarned,
-      newPointsTotal: updatedUser.points,
-      session: savedSession,
+      newPointsTotal,
+      session: { id: sessionId, ...sessionData },
     });
   } catch (error: any) {
     console.error('Save practice error:', error);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/firebase';
 import { getUserFromRequest } from '@/lib/auth';
 
 // GET: Fetch student directory with optional filters
@@ -11,34 +11,52 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get('status') || undefined;
-    const course = searchParams.get('course') || undefined;
-    const batch = searchParams.get('batch') || undefined;
-    const roll = searchParams.get('roll') || undefined;
+    const status = searchParams.get('status');
+    const course = searchParams.get('course');
+    const batch = searchParams.get('batch');
+    const roll = searchParams.get('roll');
 
-    const students = await prisma.user.findMany({
-      where: {
-        role: 'STUDENT',
-        status: status,
-        courseName: course ? { contains: course } : undefined,
-        batchName: batch ? { contains: batch } : undefined,
-        rollNumber: roll ? { contains: roll } : undefined,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        courseName: true,
-        batchName: true,
-        rollNumber: true,
-        status: true,
-        points: true,
-        createdAt: true,
-      },
-      orderBy: [
-        { status: 'asc' }, // Pending first
-        { createdAt: 'desc' },
-      ],
+    let query: FirebaseFirestore.Query = db
+      .collection('users')
+      .where('role', '==', 'STUDENT');
+
+    if (status) query = query.where('status', '==', status);
+    if (batch) query = query.where('batchName', '==', batch);
+
+    const snap = await query.get();
+
+    let students = snap.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        name: d.name,
+        email: d.email,
+        courseName: d.courseName,
+        batchName: d.batchName,
+        rollNumber: d.rollNumber,
+        status: d.status,
+        points: d.points ?? 0,
+        createdAt: d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt),
+      };
+    });
+
+    // Client-side filtering for contains-style filters (Firestore doesn't support LIKE)
+    if (course) {
+      students = students.filter((s) =>
+        s.courseName?.toLowerCase().includes(course.toLowerCase())
+      );
+    }
+    if (roll) {
+      students = students.filter((s) =>
+        s.rollNumber?.toLowerCase().includes(roll.toLowerCase())
+      );
+    }
+
+    // Sort: PENDING first, then by createdAt desc
+    students.sort((a, b) => {
+      if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+      if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     return NextResponse.json({ students });
@@ -67,24 +85,23 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
     }
 
-    const updatedStudent = await prisma.user.update({
-      where: { id: studentId },
-      data: {
-        status,
-        // Reset penalty check date to today if approved, so they start fresh
-        lastPenaltyCheck: status === 'APPROVED' ? new Date() : undefined,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        status: true,
-      },
-    });
+    const updateData: Record<string, any> = {
+      status,
+      updatedAt: new Date(),
+    };
+
+    if (status === 'APPROVED') {
+      updateData.lastPenaltyCheck = new Date();
+    }
+
+    await db.collection('users').doc(studentId).update(updateData);
+
+    const updatedDoc = await db.collection('users').doc(studentId).get();
+    const d = updatedDoc.data()!;
 
     return NextResponse.json({
       message: `Student status successfully updated to ${status}`,
-      student: updatedStudent,
+      student: { id: studentId, name: d.name, email: d.email, status: d.status },
     });
   } catch (error: any) {
     console.error('Update student status error:', error);

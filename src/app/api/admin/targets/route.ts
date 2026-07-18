@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/firebase';
 import { getUserFromRequest } from '@/lib/auth';
 
 // GET: Fetch all batch targets
@@ -10,9 +10,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const targets = await prisma.batchTarget.findMany({
-      orderBy: { batchName: 'asc' },
-    });
+    const snap = await db.collection('batch_targets').orderBy('batchName', 'asc').get();
+
+    const targets = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
     return NextResponse.json({ targets });
   } catch (error: any) {
@@ -33,25 +36,29 @@ export async function POST(req: NextRequest) {
     const { batchName, dailyTargetMinutes, pointsDeduction } = body;
 
     if (!batchName || dailyTargetMinutes === undefined || pointsDeduction === undefined) {
-      return NextResponse.json({ error: 'Missing batchName, dailyTargetMinutes, or pointsDeduction' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing batchName, dailyTargetMinutes, or pointsDeduction' },
+        { status: 400 }
+      );
     }
 
-    const target = await prisma.batchTarget.upsert({
-      where: { batchName: batchName.trim() },
-      update: {
+    const trimmedBatch = batchName.trim();
+    const now = new Date();
+
+    // Firestore set with merge = upsert
+    await db.collection('batch_targets').doc(trimmedBatch).set(
+      {
+        batchName: trimmedBatch,
         dailyTargetMinutes: parseInt(dailyTargetMinutes),
         pointsDeduction: parseInt(pointsDeduction),
+        updatedAt: now,
       },
-      create: {
-        batchName: batchName.trim(),
-        dailyTargetMinutes: parseInt(dailyTargetMinutes),
-        pointsDeduction: parseInt(pointsDeduction),
-      },
-    });
+      { merge: true }
+    );
 
     return NextResponse.json({
       message: 'Batch target configuration updated successfully',
-      target,
+      target: { batchName: trimmedBatch, dailyTargetMinutes, pointsDeduction },
     });
   } catch (error: any) {
     console.error('Upsert target error:', error);

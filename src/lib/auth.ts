@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
-import { prisma } from './db';
+import { db } from './firebase';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'typing_institute_secret_key_987654321';
 
@@ -30,22 +30,22 @@ export async function getUserFromRequest(req: NextRequest) {
   if (!payload) return null;
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        courseName: true,
-        batchName: true,
-        rollNumber: true,
-        status: true,
-        points: true,
-        createdAt: true,
-      },
-    });
-    return user;
+    const userDoc = await db.collection('users').doc(payload.userId).get();
+    if (!userDoc.exists) return null;
+
+    const data = userDoc.data()!;
+    return {
+      id: userDoc.id,
+      name: data.name,
+      email: data.email,
+      role: data.role,
+      courseName: data.courseName ?? null,
+      batchName: data.batchName ?? null,
+      rollNumber: data.rollNumber ?? null,
+      status: data.status,
+      points: data.points ?? 0,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+    };
   } catch (e) {
     return null;
   }

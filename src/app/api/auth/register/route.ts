@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/firebase';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
@@ -7,7 +7,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, email, password, courseName, batchName, rollNumber } = body;
 
-    // Validation
     if (!name || !email || !password || !courseName || !batchName || !rollNumber) {
       return NextResponse.json(
         { error: 'All fields are required' },
@@ -18,43 +17,48 @@ export async function POST(req: Request) {
     const emailLower = email.toLowerCase().trim();
 
     // Check if email exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: emailLower },
-    });
+    const existing = await db
+      .collection('users')
+      .where('email', '==', emailLower)
+      .limit(1)
+      .get();
 
-    if (existingUser) {
+    if (!existing.empty) {
       return NextResponse.json(
         { error: 'Email is already registered' },
         { status: 400 }
       );
     }
 
-    // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
+    const userId = crypto.randomUUID();
+    const now = new Date();
 
-    // Create user in PENDING state
-    const user = await prisma.user.create({
-      data: {
-        name: name.trim(),
-        email: emailLower,
-        passwordHash,
-        role: 'STUDENT',
-        courseName: courseName.trim(),
-        batchName: batchName.trim(),
-        rollNumber: rollNumber.trim(),
-        status: 'PENDING',
-        points: 0,
-      },
-    });
+    const userData = {
+      name: name.trim(),
+      email: emailLower,
+      passwordHash,
+      role: 'STUDENT',
+      courseName: courseName.trim(),
+      batchName: batchName.trim(),
+      rollNumber: rollNumber.trim(),
+      status: 'PENDING',
+      points: 0,
+      lastPenaltyCheck: now,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await db.collection('users').doc(userId).set(userData);
 
     return NextResponse.json(
       {
         message: 'Registration successful. Pending admin approval.',
         user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          status: user.status,
+          id: userId,
+          name: userData.name,
+          email: userData.email,
+          status: userData.status,
         },
       },
       { status: 201 }
