@@ -10,149 +10,212 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Allow both STUDENT and USER roles.
     if (user.role !== 'STUDENT' && user.role !== 'USER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Apply retrospective penalties
-    await applyInactivityPenalties(user.id);
+    // Apply retrospective penalties (non-blocking — don't let this crash the whole route)
+    try {
+      await applyInactivityPenalties(user.id);
+    } catch (e) {
+      console.warn('Penalty application failed (non-fatal):', e);
+    }
 
-    // Fetch refreshed user
+    // ── Fetch refreshed user ──────────────────────────────────────────────
     const userDoc = await db.collection('users').doc(user.id).get();
-    const userData = userDoc.data()!;
+    const userData = userDoc.data() ?? {};
     const points = userData.points ?? 0;
     const batchName = userData.batchName ?? '';
 
-    // Get batch targets
+    // ── Batch targets (STUDENT only) ──────────────────────────────────────
     let targetMinutes = 5;
     let pointsDeduction = 10;
     if (batchName) {
-      const batchDoc = await db.collection('batch_targets').doc(batchName).get();
-      if (batchDoc.exists) {
-        targetMinutes = batchDoc.data()!.dailyTargetMinutes ?? 5;
-        pointsDeduction = batchDoc.data()!.pointsDeduction ?? 10;
+      try {
+        const batchDoc = await db.collection('batch_targets').doc(batchName).get();
+        if (batchDoc.exists) {
+          targetMinutes = batchDoc.data()!.dailyTargetMinutes ?? 5;
+          pointsDeduction = batchDoc.data()!.pointsDeduction ?? 10;
+        }
+      } catch (e) {
+        console.warn('batch_targets fetch failed (non-fatal):', e);
       }
     }
 
-    // Today's practice time
+    // ── Today's practice time ─────────────────────────────────────────────
     const todayStr = new Date().toISOString().split('T')[0];
     const dayStart = new Date(`${todayStr}T00:00:00`);
     const dayEnd = new Date(`${todayStr}T23:59:59.999`);
 
-    const todaySessionsSnap = await db
-      .collection('practice_sessions')
-      .where('userId', '==', user.id)
-      .where('createdAt', '>=', dayStart)
-      .where('createdAt', '<=', dayEnd)
-      .get();
-
-    const todaySecondsPracticed = todaySessionsSnap.docs.reduce(
-      (sum, d) => sum + (d.data().duration ?? 0),
-      0
-    );
-
-    // Tasks assigned to the user's batch
-    let formattedTasks: any[] = [];
-    if (batchName) {
-      const tasksSnap = await db
-        .collection('tasks')
-        .where('batches', 'array-contains', batchName)
-        .orderBy('deadline', 'asc')
+    let todaySecondsPracticed = 0;
+    try {
+      const todaySessionsSnap = await db
+        .collection('practice_sessions')
+        .where('userId', '==', user.id)
+        .where('createdAt', '>=', dayStart)
+        .where('createdAt', '<=', dayEnd)
         .get();
-
-      // Fetch submissions for this user
-      const submissionsSnap = await db
-        .collection('task_submissions')
-        .where('studentId', '==', user.id)
-        .get();
-
-      const submissionMap = new Map<string, any>();
-      submissionsSnap.docs.forEach((doc) => {
-        const d = doc.data();
-        submissionMap.set(d.taskId, d);
-      });
-
-      formattedTasks = tasksSnap.docs.map((doc) => {
-        const task = doc.data();
-        const submission = submissionMap.get(doc.id);
-        const deadline = task.deadline?.toDate ? task.deadline.toDate() : new Date(task.deadline);
-        const status = submission
-          ? 'COMPLETED'
-          : new Date() > deadline
-          ? 'MISSED'
-          : 'PENDING';
-
-        return {
-          id: doc.id,
-          title: task.title,
-          textContent: task.textContent,
-          language: task.language,
-          targetWpm: task.targetWpm,
-          targetAccuracy: task.targetAccuracy,
-          deadline,
-          pointsAwardable: task.pointsAwardable,
-          status,
-          submission: submission
-            ? {
-                wpm: submission.wpm,
-                accuracy: submission.accuracy,
-                pointsEarned: submission.pointsEarned,
-                completedAt: submission.completedAt?.toDate
-                  ? submission.completedAt.toDate()
-                  : new Date(submission.completedAt),
-                isLate: submission.isLate,
-              }
-            : null,
-        };
-      });
+      todaySecondsPracticed = todaySessionsSnap.docs.reduce(
+        (sum, d) => sum + (d.data().duration ?? 0),
+        0
+      );
+    } catch (e) {
+      console.warn('Today sessions fetch failed (non-fatal):', e);
     }
 
-    // Recent 15 sessions for WPM/accuracy trend chart
-    const recentSessionsSnap = await db
-      .collection('practice_sessions')
-      .where('userId', '==', user.id)
-      .orderBy('createdAt', 'desc')
-      .limit(15)
-      .get();
+    // ── Batch task assignments (STUDENT only) ─────────────────────────────
+    let formattedTasks: any[] = [];
+    if (batchName) {
+      try {
+        // fetch tasks without orderBy to avoid composite index requirement,
+        // then sort in-memory
+        const tasksSnap = await db
+          .collection('tasks')
+          .where('batches', 'array-contains', batchName)
+          .get();
 
-    const sessionHistory = recentSessionsSnap.docs
-      .reverse()
-      .map((doc) => {
+        const submissionsSnap = await db
+          .collection('task_submissions')
+          .where('studentId', '==', user.id)
+          .get();
+
+        const submissionMap = new Map<string, any>();
+        submissionsSnap.docs.forEach((doc) => {
+          const d = doc.data();
+          submissionMap.set(d.taskId, d);
+        });
+
+        formattedTasks = tasksSnap.docs
+          .map((doc) => {
+            const task = doc.data();
+            const submission = submissionMap.get(doc.id);
+            const deadline = task.deadline?.toDate
+              ? task.deadline.toDate()
+              : new Date(task.deadline);
+            const status = submission
+              ? 'COMPLETED'
+              : new Date() > deadline
+              ? 'MISSED'
+              : 'PENDING';
+
+            return {
+              id: doc.id,
+              title: task.title,
+              textContent: task.textContent,
+              language: task.language,
+              targetWpm: task.targetWpm,
+              targetAccuracy: task.targetAccuracy,
+              deadline,
+              pointsAwardable: task.pointsAwardable,
+              status,
+              submission: submission
+                ? {
+                    wpm: submission.wpm,
+                    accuracy: submission.accuracy,
+                    pointsEarned: submission.pointsEarned,
+                    completedAt: submission.completedAt?.toDate
+                      ? submission.completedAt.toDate()
+                      : new Date(submission.completedAt),
+                    isLate: submission.isLate,
+                  }
+                : null,
+            };
+          })
+          // Sort in-memory by deadline ascending (replaces orderBy to avoid index)
+          .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+      } catch (e) {
+        console.warn('Tasks fetch failed (non-fatal):', e);
+      }
+    }
+
+    // ── All practice sessions for this user (fetch once, derive everything) ─
+    let allSessions: any[] = [];
+    try {
+      const allSessionsSnap = await db
+        .collection('practice_sessions')
+        .where('userId', '==', user.id)
+        .get();
+
+      allSessions = allSessionsSnap.docs.map((doc) => {
         const s = doc.data();
         const createdAt = s.createdAt?.toDate ? s.createdAt.toDate() : new Date(s.createdAt);
         return {
           id: doc.id,
-          wpm: s.wpm,
-          accuracy: s.accuracy,
-          date: createdAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+          wpm: s.wpm ?? 0,
+          accuracy: s.accuracy ?? 0,
+          duration: s.duration ?? 0,
+          language: s.language ?? 'English',
+          mode: s.mode ?? 'Standard',
+          createdAt,
+          date: createdAt.toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          }),
+          time: createdAt.toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
         };
       });
 
-    // Daily practice minutes for last 7 days
-    const dailyPracticeHistory = [];
+      // Sort in-memory (newest first)
+      allSessions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    } catch (e) {
+      console.warn('All sessions fetch failed (non-fatal):', e);
+    }
+
+    // ── Derived analytics ─────────────────────────────────────────────────
+    const totalTests = allSessions.length;
+    const bestWpm = totalTests > 0 ? Math.max(...allSessions.map((s) => s.wpm)) : 0;
+    const avgWpm =
+      totalTests > 0
+        ? Math.round(allSessions.reduce((sum, s) => sum + s.wpm, 0) / totalTests)
+        : 0;
+    const avgAccuracy =
+      totalTests > 0
+        ? Math.round(allSessions.reduce((sum, s) => sum + s.accuracy, 0) / totalTests)
+        : 0;
+
+    // Recent 15 for history table (already sorted newest-first)
+    const recentSessions = allSessions.slice(0, 15);
+
+    // WPM trend data (last 15, chronological)
+    const sessionHistory = [...recentSessions].reverse().map((s) => ({
+      id: s.id,
+      wpm: s.wpm,
+      accuracy: s.accuracy,
+      date: s.date,
+    }));
+
+    // Daily practice minutes — last 7 days (in-memory from allSessions)
+    const dailyPracticeHistory: { dayName: string; minutes: number }[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
-      const start = new Date(`${dateStr}T00:00:00`);
-      const end = new Date(`${dateStr}T23:59:59.999`);
-
-      const daySnap = await db
-        .collection('practice_sessions')
-        .where('userId', '==', user.id)
-        .where('createdAt', '>=', start)
-        .where('createdAt', '<=', end)
-        .get();
-
-      const minutesPracticed = Math.round(
-        daySnap.docs.reduce((sum, s) => sum + (s.data().duration ?? 0), 0) / 60
-      );
-
+      const daySeconds = allSessions
+        .filter((s) => s.createdAt.toISOString().split('T')[0] === dateStr)
+        .reduce((sum, s) => sum + s.duration, 0);
       dailyPracticeHistory.push({
         dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
-        minutes: minutesPracticed,
+        minutes: Math.round(daySeconds / 60),
       });
+    }
+
+    // Simple performance trend label
+    let performanceTrend: 'improving' | 'stable' | 'declining' | 'new' = 'new';
+    if (sessionHistory.length >= 5) {
+      const half = Math.floor(sessionHistory.length / 2);
+      const recentAvg =
+        sessionHistory.slice(half).reduce((s, r) => s + r.wpm, 0) /
+        (sessionHistory.length - half);
+      const olderAvg =
+        sessionHistory.slice(0, half).reduce((s, r) => s + r.wpm, 0) / half;
+      const delta = recentAvg - olderAvg;
+      if (delta > 3) performanceTrend = 'improving';
+      else if (delta < -3) performanceTrend = 'declining';
+      else performanceTrend = 'stable';
     }
 
     return NextResponse.json({
@@ -169,12 +232,40 @@ export async function GET(req: NextRequest) {
       },
       tasks: formattedTasks,
       analytics: {
+        totalTests,
+        bestWpm,
+        avgWpm,
+        avgAccuracy,
         sessions: sessionHistory,
         dailyPractice: dailyPracticeHistory,
+        recentSessions,
+        performanceTrend,
       },
     });
   } catch (error: any) {
-    console.error('Student dashboard error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Dashboard error:', error);
+    // Return safe empty structure instead of a 500 crash
+    return NextResponse.json({
+      user: null,
+      targets: {
+        targetMinutes: 5,
+        pointsDeduction: 10,
+        todayMinutesPracticed: 0,
+        todaySecondsPracticed: 0,
+        percentComplete: 0,
+      },
+      tasks: [],
+      analytics: {
+        totalTests: 0,
+        bestWpm: 0,
+        avgWpm: 0,
+        avgAccuracy: 0,
+        sessions: [],
+        dailyPractice: [],
+        recentSessions: [],
+        performanceTrend: 'new',
+      },
+      _error: error?.message ?? 'Unknown error',
+    });
   }
 }

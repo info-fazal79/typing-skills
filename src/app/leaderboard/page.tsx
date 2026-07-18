@@ -2,212 +2,253 @@
 
 import React, { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
-import { Trophy, Award, Search, Users, ChevronRight, Crown } from 'lucide-react';
+import { Trophy, Award, Users, Crown, ChevronDown } from 'lucide-react';
 
 export default function LeaderboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'general' | 'batch'>('general');
-  const [selectedBatch, setSelectedBatch] = useState<string>('');
-  const [error, setError] = useState('');
 
-  const fetchLeaderboard = async (batchName?: string) => {
-    try {
-      const url = batchName 
-        ? `/api/leaderboard?batch=${encodeURIComponent(batchName)}`
-        : '/api/leaderboard';
-      
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error('Failed to load leaderboard data');
-      }
-      const json = await res.json();
-      setData(json);
-      
-      if (!batchName && json.selectedBatch) {
-        setSelectedBatch(json.selectedBatch);
-        if (json.selectedBatch) {
-          setActiveTab('batch');
-        }
-      }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Batch filter state
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedBatch, setSelectedBatch] = useState('');
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchData, setBatchData] = useState<any[]>([]);
 
+  // ── Initial fetch ─────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchLeaderboard();
+    const init = async () => {
+      try {
+        const res = await fetch('/api/leaderboard');
+        const json = await res.json();
+        setData(json);
+
+        // Auto-select the user's batch if they're a student
+        if (json.selectedBatch) {
+          setSelectedBatch(json.selectedBatch);
+          setBatchData(json.batch ?? []);
+
+          // Derive the course from coursesMap
+          const coursesMap: Record<string, string[]> = json.coursesMap ?? {};
+          for (const [course, batches] of Object.entries(coursesMap)) {
+            if ((batches as string[]).includes(json.selectedBatch)) {
+              setSelectedCourse(course);
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Leaderboard fetch failed', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
-  const handleBatchChange = (batch: string) => {
-    setSelectedBatch(batch);
-    fetchLeaderboard(batch);
+  // ── Fetch batch leaderboard when filters change ───────────────────────────
+  useEffect(() => {
+    if (!selectedBatch) {
+      setBatchData([]);
+      return;
+    }
+    const fetchBatch = async () => {
+      setBatchLoading(true);
+      try {
+        const res = await fetch(
+          `/api/leaderboard?batch=${encodeURIComponent(selectedBatch)}&course=${encodeURIComponent(selectedCourse)}`
+        );
+        const json = await res.json();
+        setBatchData(json.batch ?? []);
+      } catch {
+        setBatchData([]);
+      } finally {
+        setBatchLoading(false);
+      }
+    };
+    fetchBatch();
+  }, [selectedBatch, selectedCourse]);
+
+  // ── Rank badge ────────────────────────────────────────────────────────────
+  const renderRankBadge = (rank: number) => {
+    if (rank === 1)
+      return (
+        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/25">
+          <Crown size={13} className="animate-bounce" />
+        </div>
+      );
+    if (rank === 2)
+      return (
+        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-neutral-300/10 text-neutral-300 border border-neutral-300/25 text-xs font-bold font-mono">
+          2
+        </div>
+      );
+    if (rank === 3)
+      return (
+        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-800/10 text-amber-700 border border-amber-800/25 text-xs font-bold font-mono">
+          3
+        </div>
+      );
+    return <span className="font-mono text-xs font-semibold text-neutral-500">{rank}</span>;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col font-sans">
+      <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col">
         <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-amber-400 border-r-2 border-transparent"></div>
+        <div className="flex-1 flex items-center justify-center gap-3">
+          <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-amber-400 border-r-2 border-transparent" />
+          <span className="text-neutral-500 text-sm font-medium">Loading leaderboards…</span>
         </div>
       </div>
     );
   }
 
-  if (error || !data) {
-    return (
-      <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col font-sans">
-        <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4">
-          <Trophy size={48} className="text-red-500" />
-          <h2 className="text-2xl font-bold text-neutral-100 font-sans">Failed to Load Leaderboards</h2>
-          <p className="text-neutral-400 text-sm">{error || 'An unexpected error occurred.'}</p>
-          <button onClick={() => window.location.reload()} className="bg-amber-500 text-neutral-950 font-bold px-4 py-2 rounded-lg">
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const coursesMap: Record<string, string[]> = data?.coursesMap ?? {};
+  const courseList = Object.keys(coursesMap);
+  const batchList = selectedCourse ? (coursesMap[selectedCourse] ?? []) : [];
+  const generalList: any[] = data?.general ?? [];
 
-  const { general, batch, batches } = data;
-  const listToRender = activeTab === 'general' ? general : batch;
-
-  const renderRankBadge = (rank: number) => {
-    if (rank === 1) {
-      return (
-        <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/25">
-          <Crown size={12} className="animate-bounce" />
-        </div>
-      );
-    }
-    if (rank === 2) {
-      return (
-        <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-neutral-300/10 text-neutral-300 border border-neutral-300/25 text-xs font-bold font-mono">
-          2
-        </div>
-      );
-    }
-    if (rank === 3) {
-      return (
-        <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-800/10 text-amber-700 border border-amber-800/25 text-xs font-bold font-mono">
-          3
-        </div>
-      );
-    }
-    return <span className="font-mono text-xs font-semibold text-neutral-500">{rank}</span>;
-  };
+  const listToRender = activeTab === 'general' ? generalList : batchData;
 
   return (
     <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-12 flex flex-col gap-6 select-none">
-        
-        {/* Title */}
-        <section className="text-center flex flex-col items-center gap-2 mb-4">
-          <div className="bg-amber-500/10 text-amber-400 p-3 rounded-full border border-amber-500/20 mb-2">
-            <Trophy size={32} />
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col gap-6 select-none">
+
+        {/* ── Hero ── */}
+        <section className="text-center flex flex-col items-center gap-2 mb-2">
+          <div className="bg-amber-500/10 text-amber-400 p-3 rounded-full border border-amber-500/20 mb-1">
+            <Trophy size={30} />
           </div>
-          <h1 className="text-3xl font-extrabold text-neutral-100 font-sans tracking-tight">Institute Leaderboards</h1>
-          <p className="text-neutral-400 text-xs sm:text-sm">Compare speeds, progress, and points of students across the institute.</p>
+          <h1 className="text-3xl font-extrabold text-neutral-100 tracking-tight">Institute Leaderboards</h1>
+          <p className="text-neutral-400 text-xs sm:text-sm">Rankings across all users and batches of the institute.</p>
         </section>
 
-        {/* Tab Controls & Filters */}
-        <section className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-neutral-900/40 p-3 rounded-2xl border border-neutral-800 text-sm">
+        {/* ── Tabs + Filters ── */}
+        <section className="flex flex-col gap-3 bg-neutral-900/30 p-3 rounded-2xl border border-neutral-800">
           {/* Tab buttons */}
-          <div className="flex bg-neutral-950 p-1 rounded-lg w-full sm:w-max">
+          <div className="flex bg-neutral-950 p-1 rounded-xl gap-1">
             <button
               onClick={() => setActiveTab('general')}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-md font-semibold text-xs transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 px-4 py-2.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-2 ${
                 activeTab === 'general'
                   ? 'bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/20'
                   : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
-              <Award size={14} />
-              General Leaderboard
+              <Award size={14} /> General Leaderboard
             </button>
             <button
               onClick={() => setActiveTab('batch')}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-md font-semibold text-xs transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 px-4 py-2.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-2 ${
                 activeTab === 'batch'
                   ? 'bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/20'
                   : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
-              <Users size={14} />
-              Batch-wise Standings
+              <Users size={14} /> Batch Leaderboard
             </button>
           </div>
 
-          {/* Batch Selector Filter (only when batch tab is active) */}
+          {/* Batch filter dropdowns (chained: Course → Batch) */}
           {activeTab === 'batch' && (
-            <div className="flex items-center gap-2 w-full sm:w-max">
-              <span className="text-neutral-500 text-xs font-semibold uppercase tracking-wider hidden md:inline">Select Batch:</span>
-              <select
-                value={selectedBatch}
-                onChange={(e) => handleBatchChange(e.target.value)}
-                className="w-full sm:w-48 bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg py-2 px-3 focus:outline-hidden focus:border-amber-500/40 text-xs font-semibold"
-              >
-                <option value="">-- Choose Batch --</option>
-                {batches.map((b: string) => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              {/* Course dropdown */}
+              <div className="relative flex-1">
+                <select
+                  value={selectedCourse}
+                  onChange={(e) => {
+                    setSelectedCourse(e.target.value);
+                    setSelectedBatch('');
+                    setBatchData([]);
+                  }}
+                  className="w-full appearance-none bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-xl py-2.5 pl-3 pr-8 text-xs font-semibold focus:outline-none focus:border-amber-500/40 transition-colors"
+                >
+                  <option value="">— Select Course —</option>
+                  {courseList.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
+              </div>
+
+              {/* Batch dropdown */}
+              <div className="relative flex-1">
+                <select
+                  value={selectedBatch}
+                  disabled={!selectedCourse}
+                  onChange={(e) => setSelectedBatch(e.target.value)}
+                  className="w-full appearance-none bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-xl py-2.5 pl-3 pr-8 text-xs font-semibold focus:outline-none focus:border-amber-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <option value="">— Select Batch —</option>
+                  {batchList.map((b: string) => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
+              </div>
             </div>
           )}
         </section>
 
-        {/* Standings Table Card */}
+        {/* ── Rankings table ── */}
         <section className="bg-neutral-900/10 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
-          {listToRender.length === 0 ? (
-            <div className="p-12 text-center text-sm text-neutral-500 font-medium">
-              {activeTab === 'batch' && !selectedBatch 
-                ? 'Please select a batch from the filter dropdown above to view standings.'
-                : 'No approved students found on the leaderboard yet.'}
+          {activeTab === 'batch' && !selectedBatch ? (
+            <div className="p-14 text-center text-sm text-neutral-500 font-medium">
+              Select a course and batch above to view the batch standings.
+            </div>
+          ) : activeTab === 'batch' && batchLoading ? (
+            <div className="p-14 text-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-amber-400 border-r-2 border-transparent mx-auto" />
+            </div>
+          ) : listToRender.length === 0 ? (
+            <div className="p-14 text-center text-sm text-neutral-500 font-medium">
+              {activeTab === 'general'
+                ? 'No approved general users found yet.'
+                : 'No approved students found in this batch yet.'}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
-                    <th className="py-4 px-6 text-center w-16">Rank</th>
-                    <th className="py-4 px-6">Name</th>
+                    <th className="py-4 px-5 text-center w-14">Rank</th>
+                    <th className="py-4 px-5">Name</th>
                     {activeTab === 'batch' && (
                       <>
-                        <th className="py-4 px-6">Course</th>
-                        <th className="py-4 px-6">Batch</th>
-                        <th className="py-4 px-6">Roll Number</th>
+                        <th className="py-4 px-5">Course</th>
+                        <th className="py-4 px-5">Batch</th>
+                        <th className="py-4 px-5">Roll</th>
                       </>
                     )}
-                    <th className="py-4 px-6 text-right pr-8 w-28">Score</th>
+                    <th className="py-4 px-5 text-right">Best WPM</th>
+                    <th className="py-4 px-5 text-right pr-7">Points</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-900/60 text-xs">
-                  {listToRender.map((student: any, index: number) => (
-                    <tr 
-                      key={student.id} 
-                      className="hover:bg-neutral-900/30 transition-colors"
+                  {listToRender.map((entry: any, idx: number) => (
+                    <tr
+                      key={entry.id}
+                      className={`hover:bg-neutral-900/30 transition-colors ${idx < 3 ? 'bg-amber-500/[0.02]' : ''}`}
                     >
-                      <td className="py-4 px-6 text-center">{renderRankBadge(index + 1)}</td>
-                      <td className="py-4 px-6 font-bold text-neutral-200">{student.name}</td>
+                      <td className="py-4 px-5 text-center">{renderRankBadge(idx + 1)}</td>
+                      <td className="py-4 px-5 font-bold text-neutral-200">{entry.name}</td>
                       {activeTab === 'batch' && (
                         <>
-                          <td className="py-4 px-6 text-neutral-400">{student.courseName || 'N/A'}</td>
-                          <td className="py-4 px-6 text-neutral-400">
+                          <td className="py-4 px-5 text-neutral-400">{entry.courseName || '—'}</td>
+                          <td className="py-4 px-5">
                             <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[10px] font-semibold text-neutral-300">
-                              {student.batchName || 'N/A'}
+                              {entry.batchName || '—'}
                             </span>
                           </td>
-                          <td className="py-4 px-6 font-mono text-neutral-400 text-[11px]">{student.rollNumber || 'N/A'}</td>
+                          <td className="py-4 px-5 font-mono text-neutral-400 text-[11px]">{entry.rollNumber || '—'}</td>
                         </>
                       )}
-                      <td className="py-4 px-6 text-right pr-8 font-bold font-mono text-amber-400 text-sm">
-                        {student.points} <span className="text-[10px] text-neutral-500 font-semibold uppercase">pts</span>
+                      <td className="py-4 px-5 text-right font-mono font-bold text-sky-400">{entry.bestWpm} <span className="text-[10px] text-neutral-500">wpm</span></td>
+                      <td className="py-4 px-5 text-right pr-7 font-bold font-mono text-amber-400">
+                        {entry.points} <span className="text-[10px] text-neutral-500 font-semibold uppercase">pts</span>
                       </td>
                     </tr>
                   ))}

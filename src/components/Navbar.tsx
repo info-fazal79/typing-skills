@@ -138,15 +138,11 @@ export function Navbar() {
               )}
 
               {/* User Dropdown / Label */}
-              <div className="flex flex-col text-right hidden md:block">
+              <div className="hidden md:flex flex-col text-right">
                 <span className="text-xs font-bold text-neutral-200 leading-none">{user.name}</span>
-                <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold mt-1">
-                  {user.role === 'ADMIN' 
-                    ? 'Administrator' 
-                    : user.role === 'STUDENT' && user.rollNumber 
-                      ? `Roll: ${user.rollNumber}` 
-                      : 'Practice User'}
-                </span>
+                {user.role === 'ADMIN' && (
+                  <span className="text-[10px] text-amber-500/80 uppercase tracking-wider font-semibold mt-0.5">Administrator</span>
+                )}
               </div>
 
               {/* Mobile quick links */}

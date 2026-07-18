@@ -49,8 +49,25 @@ export async function POST(req: NextRequest) {
     // Atomic batch write: save session + increment user points
     const batch = db.batch();
     batch.set(db.collection('practice_sessions').doc(sessionId), sessionData);
+
+    // Fetch existing user stats to compute bestWpm / avgWpm
+    const currentUserSnap = await db.collection('users').doc(user.id).get();
+    const currentUserData = currentUserSnap.data() ?? {};
+    const currentBestWpm: number = currentUserData.bestWpm ?? 0;
+    const currentTotalWpm: number = currentUserData.totalWpmSum ?? 0;
+    const currentSessionCount: number = currentUserData.sessionCount ?? 0;
+
+    const newBestWpm = Math.max(currentBestWpm, parseFloat(wpm));
+    const newTotalWpm = currentTotalWpm + parseFloat(wpm);
+    const newSessionCount = currentSessionCount + 1;
+    const newAvgWpm = Math.round(newTotalWpm / newSessionCount);
+
     batch.update(db.collection('users').doc(user.id), {
       points: FieldValue.increment(pointsEarned),
+      bestWpm: newBestWpm,
+      avgWpm: newAvgWpm,
+      totalWpmSum: newTotalWpm,
+      sessionCount: newSessionCount,
       updatedAt: now,
     });
     await batch.commit();

@@ -11,80 +11,97 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const filterBatch = searchParams.get('batch');
+    const filterCourse = searchParams.get('course');
 
-    // General leaderboard: top 50 users (role: USER, status: APPROVED)
-    const generalSnap = await db
-      .collection('users')
-      .where('role', '==', 'USER')
-      .where('status', '==', 'APPROVED')
-      .orderBy('points', 'desc')
-      .limit(50)
-      .get();
-
-    const general = generalSnap.docs.map((doc) => {
-      const d = doc.data();
-      return {
-        id: doc.id,
-        name: d.name,
-        points: d.points ?? 0,
-      };
-    });
-
-    // Student Leaderboard Setup (Batches)
-    // First we need all batches to populate the dropdown
-    // Since we don't want to query all students to find unique batches, we can fetch from metadata
-    let batchList: string[] = [];
+    // ── 1. Fetch metadata (courses → batches map) ────────────────────────────
+    let coursesMap: Record<string, string[]> = {};
     try {
-      const metadataSnap = await db.collection('metadata').doc('selectors').get();
-      if (metadataSnap.exists) {
-        const metadataData = metadataSnap.data() as { courses: Record<string, string[]> };
-        if (metadataData && metadataData.courses) {
-          const allBatches = new Set<string>();
-          Object.values(metadataData.courses).forEach((batches) => {
-            batches.forEach(b => allBatches.add(b));
-          });
-          batchList = Array.from(allBatches).sort();
-        }
+      const metaSnap = await db.collection('metadata').doc('selectors').get();
+      if (metaSnap.exists) {
+        const d = metaSnap.data() as any;
+        if (d?.courses) coursesMap = d.courses;
       }
     } catch (e) {
-      console.warn("Failed to fetch metadata for batches", e);
+      console.warn('Failed to fetch metadata', e);
     }
 
-    // Batch leaderboard (role: STUDENT, status: APPROVED, filtered by batchName)
-    const selectedBatch = filterBatch || user.batchName || (batchList.length > 0 ? batchList[0] : '');
-    let batchLeaderboard: any[] = [];
+    // ── 2. General Leaderboard ─────────────────────────────────────────────
+    // Fetch ALL approved users with role USER, sort in-memory (avoids composite index)
+    const generalSnap = await db
+      .collection('users')
+      .where('status', '==', 'APPROVED')
+      .where('role', '==', 'USER')
+      .get();
 
-    if (selectedBatch) {
-      const batchSnap = await db
-        .collection('users')
-        .where('role', '==', 'STUDENT')
-        .where('status', '==', 'APPROVED')
-        .where('batchName', '==', selectedBatch)
-        .orderBy('points', 'desc')
-        .limit(50)
-        .get();
-
-      batchLeaderboard = batchSnap.docs.map((doc) => {
+    const general = generalSnap.docs
+      .map((doc) => {
         const d = doc.data();
         return {
           id: doc.id,
           name: d.name,
-          courseName: d.courseName,
-          batchName: d.batchName,
-          rollNumber: d.rollNumber,
           points: d.points ?? 0,
+          bestWpm: d.bestWpm ?? 0,
+          avgWpm: d.avgWpm ?? 0,
         };
-      });
+      })
+      .sort((a, b) => b.points - a.points || b.bestWpm - a.bestWpm)
+      .slice(0, 100);
+
+    // ── 3. Batch Leaderboard ───────────────────────────────────────────────
+    // Fetch ALL approved students, filter + sort in-memory (avoids composite index)
+    const allStudentsSnap = await db
+      .collection('users')
+      .where('status', '==', 'APPROVED')
+      .where('role', '==', 'STUDENT')
+      .get();
+
+    const allStudents = allStudentsSnap.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        name: d.name,
+        courseName: d.courseName ?? '',
+        batchName: d.batchName ?? '',
+        rollNumber: d.rollNumber ?? '',
+        points: d.points ?? 0,
+        bestWpm: d.bestWpm ?? 0,
+        avgWpm: d.avgWpm ?? 0,
+      };
+    });
+
+    // Determine which batch to show
+    const defaultBatch =
+      filterBatch ||
+      (user.role === 'STUDENT' ? (user as any).batchName : '') ||
+      '';
+
+    // Filter by batch (and optional course)
+    let filteredStudents = allStudents;
+    if (defaultBatch) {
+      filteredStudents = allStudents.filter((s) => s.batchName === defaultBatch);
+    } else if (filterCourse) {
+      filteredStudents = allStudents.filter((s) => s.courseName === filterCourse);
     }
+
+    const batchLeaderboard = filteredStudents
+      .sort((a, b) => b.points - a.points || b.bestWpm - a.bestWpm)
+      .slice(0, 100);
 
     return NextResponse.json({
       general,
       batch: batchLeaderboard,
-      selectedBatch,
-      batches: batchList,
+      selectedBatch: defaultBatch,
+      coursesMap,
     });
   } catch (error: any) {
     console.error('Leaderboard error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // Return safe empty structure instead of crashing
+    return NextResponse.json({
+      general: [],
+      batch: [],
+      selectedBatch: '',
+      coursesMap: {},
+      _error: error?.message ?? 'Unknown error',
+    });
   }
 }
