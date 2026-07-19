@@ -4,6 +4,15 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import { generatePracticeText } from '@/utils/wordLists';
 import { RotateCcw, Volume2, VolumeX, Sparkles, Trophy } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid
+} from 'recharts';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pre-loaded audio buffers for zero-latency playback
@@ -26,7 +35,6 @@ function getAudioCtx(): AudioContext | null {
   }
 }
 
-/** Build a tiny PCM buffer in memory — no file loading needed. */
 function buildBuffer(
   ctx: AudioContext,
   freq: number,
@@ -39,7 +47,7 @@ function buildBuffer(
   const data = buf.getChannelData(0);
   for (let i = 0; i < len; i++) {
     const t = i / ctx.sampleRate;
-    const env = Math.pow(1 - t / durationSec, 2); // quadratic decay
+    const env = Math.pow(1 - t / durationSec, 2);
     let sample = 0;
     if (waveShape === 'sine')     sample = Math.sin(2 * Math.PI * freq * t);
     else if (waveShape === 'square')   sample = Math.sign(Math.sin(2 * Math.PI * freq * t));
@@ -66,7 +74,7 @@ function playClick(isCorrect: boolean) {
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.connect(ctx.destination);
-    src.start(ctx.currentTime); // zero scheduling overhead
+    src.start(ctx.currentTime);
   } catch { /* ignore */ }
 }
 
@@ -84,6 +92,12 @@ interface TypingPracticeProps {
   isTask?: boolean;
 }
 
+interface ChartDataPoint {
+  second: number;
+  wpm: number;
+  errors: number;
+}
+
 export function TypingPractice({ onSessionComplete, initialText, isTask = false }: TypingPracticeProps) {
   const [language, setLanguage] = useState<string>('english');
   const [mode, setMode] = useState<string>('standard');
@@ -95,24 +109,32 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   const [isCustomDuration, setIsCustomDuration] = useState<boolean>(false);
   const [customDurationInput, setCustomDurationInput] = useState<string>('');
 
-  // ── Refs ─────────────────────────────────────────────────────────────────
-  const inputRef    = useRef<HTMLTextAreaElement>(null);
-  const innerRef    = useRef<HTMLDivElement>(null);       // sliding text wrapper
-  const charsRef    = useRef<(HTMLSpanElement | null)[]>([]);
-  const soundRef    = useRef(soundEnabled);
+  // ── Typing Master Views & Scrolling ──
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const charsRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const soundRef = useRef(soundEnabled);
   useEffect(() => { soundRef.current = soundEnabled; }, [soundEnabled]);
 
-  // ── Caret state (absolute inside innerRef) ────────────────────────────────
-  const [caretX, setCaretX]     = useState(0);
-  const [caretY, setCaretY]     = useState(0);
-  const [caretH, setCaretH]     = useState(32);
+  // Caret coordinate states
+  const [caretX, setCaretX] = useState(0);
+  const [caretY, setCaretY] = useState(0);
+  const [caretH, setCaretH] = useState(32);
   const [caretVis, setCaretVis] = useState(false);
 
-  // ── Scroll-translation state (px to slide innerRef upward) ───────────────
-  const [translateY, setTranslateY]     = useState(0);
+  // Active typing state for blinking cursor
+  const [isCaretBlinking, setIsCaretBlinking] = useState(true);
+  const caretTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Scroll translation states
+  const [translateY, setTranslateY] = useState(0);
   const [animateScroll, setAnimateScroll] = useState(false);
 
-  // ── Generate text ─────────────────────────────────────────────────────────
+  // Advanced Stats Tracking
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const chartIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Generate initial text
   useEffect(() => {
     if (initialText) {
       setText(initialText);
@@ -124,10 +146,27 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   const {
     typedText, isStarted, isCompleted,
     timeLeft, wpm, accuracy, timeElapsed,
-    handleInputChange, resetEngine,
+    handleInputChange, resetEngine, totalAttempts,
+    correctChars, incorrectChars
   } = useTypingEngine(text, duration);
 
-  // ── Infinite word appending ───────────────────────────────────────────────
+  // ── Active vs Idle Caret Blinking ──
+  const registerKeystrokeForCaret = useCallback(() => {
+    setIsCaretBlinking(false); // Stop blinking while typing
+    if (caretTimerRef.current) clearTimeout(caretTimerRef.current);
+    caretTimerRef.current = setTimeout(() => {
+      setIsCaretBlinking(true); // Resume blinking after 1 second of inactivity
+    }, 1000);
+  }, []);
+
+  // Clean up caret timer
+  useEffect(() => {
+    return () => {
+      if (caretTimerRef.current) clearTimeout(caretTimerRef.current);
+    };
+  }, []);
+
+  // ── Infinite word appending ──
   useEffect(() => {
     if (!initialText && isStarted && !isCompleted) {
       if (text.length - typedText.length < 100) {
@@ -137,13 +176,55 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
     }
   }, [typedText, text, isStarted, isCompleted, language, mode, initialText]);
 
-  // ── Caret + line-scroll tracking ──────────────────────────────────────────
+  // ── Chart Data Tracking (Second-by-Second) ──
+  useEffect(() => {
+    if (isStarted && !isCompleted) {
+      setChartData([]); // Clear old points
+      let secondCounter = 0;
+      
+      chartIntervalRef.current = setInterval(() => {
+        secondCounter += 1;
+        
+        // Calculate raw/correct characters at this exact moment
+        let currentCorrect = 0;
+        let currentIncorrect = 0;
+        for (let i = 0; i < typedText.length; i++) {
+          if (typedText[i] === text[i]) {
+            currentCorrect++;
+          } else {
+            currentIncorrect++;
+          }
+        }
+        
+        const currentWpm = Math.round((currentCorrect / 5) / (secondCounter / 60));
+        
+        setChartData((prev) => [
+          ...prev,
+          {
+            second: secondCounter,
+            wpm: isNaN(currentWpm) || !isFinite(currentWpm) ? 0 : currentWpm,
+            errors: currentIncorrect
+          }
+        ]);
+      }, 1000);
+    } else {
+      if (chartIntervalRef.current) {
+        clearInterval(chartIntervalRef.current);
+        chartIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (chartIntervalRef.current) clearInterval(chartIntervalRef.current);
+    };
+  }, [isStarted, isCompleted, text, typedText]);
+
+  // ── Caret + line-scroll tracking ──
   useEffect(() => {
     const activeIndex = typedText.length;
     const span = charsRef.current[activeIndex];
     if (!span || !innerRef.current) return;
 
-    // Coords relative to the sliding inner div
     const x = span.offsetLeft;
     const y = span.offsetTop;
     const h = span.offsetHeight || 32;
@@ -153,8 +234,6 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
     setCaretH(h);
     setCaretVis(isFocused && !isCompleted);
 
-    // Slide up so the active row is always in the 2nd visible row (Typing Master style).
-    // translateY = max(0, rowTop - 1 lineHeight)
     const newTY = Math.max(0, y - h);
     if (newTY !== translateY) {
       setAnimateScroll(true);
@@ -162,17 +241,18 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
     }
   }, [typedText, text, isFocused, isCompleted]);
 
-  // ── Focus ─────────────────────────────────────────────────────────────────
+  // ── Focus ──
   useEffect(() => {
     if (inputRef.current && isFocused) inputRef.current.focus();
   }, [isFocused, text]);
 
-  // ── Reset — instant scroll snap, then re-enable animation ─────────────────
+  // ── Reset ──
   const handleReset = useCallback(() => {
-    // Snap scroll instantly (no animation) before new text renders
     setAnimateScroll(false);
     setTranslateY(0);
     setCaretVis(false);
+    setIsCaretBlinking(true);
+    setChartData([]);
 
     resetEngine(duration);
     if (!initialText) {
@@ -180,13 +260,18 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
     }
     setSaveStatus('');
 
+    if (chartIntervalRef.current) {
+      clearInterval(chartIntervalRef.current);
+      chartIntervalRef.current = null;
+    }
+
     setTimeout(() => {
       charsRef.current = [];
       inputRef.current?.focus();
     }, 30);
   }, [duration, language, mode, initialText, resetEngine]);
 
-  // ── Esc ───────────────────────────────────────────────────────────────────
+  // ── Esc ──
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); handleReset(); }
@@ -195,17 +280,20 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
     return () => window.removeEventListener('keydown', onKey);
   }, [handleReset]);
 
-  // ── Sound ─────────────────────────────────────────────────────────────────
+  // ── Sound + Caret Activity ──
   const lastLenRef = useRef(0);
   useEffect(() => {
-    if (typedText.length > lastLenRef.current && soundRef.current) {
-      const i = typedText.length - 1;
-      playClick(typedText[i] === text[i]);
+    if (typedText.length > lastLenRef.current) {
+      registerKeystrokeForCaret();
+      if (soundRef.current) {
+        const i = typedText.length - 1;
+        playClick(typedText[i] === text[i]);
+      }
     }
     lastLenRef.current = typedText.length;
-  }, [typedText, text]);
+  }, [typedText, text, registerKeystrokeForCaret]);
 
-  // ── Session complete ───────────────────────────────────────────────────────
+  // ── Session complete ──
   const completedRef = useRef(false);
   useEffect(() => {
     if (isCompleted && !completedRef.current) {
@@ -215,7 +303,19 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
     if (!isCompleted) completedRef.current = false;
   }, [isCompleted, wpm, accuracy, timeElapsed, language, mode, onSessionComplete]);
 
-  // ── Render chars ──────────────────────────────────────────────────────────
+  // ── Consistency Calculation ──
+  const calculateConsistency = () => {
+    if (chartData.length < 2) return 100;
+    const wpms = chartData.map((d) => d.wpm);
+    const avg = wpms.reduce((a, b) => a + b, 0) / wpms.length;
+    if (avg === 0) return 0;
+    const variance = wpms.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / wpms.length;
+    const stdDev = Math.sqrt(variance);
+    const consistency = Math.max(0, Math.min(100, Math.round(100 - (stdDev / avg) * 100)));
+    return consistency;
+  };
+
+  // ── Render chars ──
   const renderCharacters = () =>
     text.split('').map((char, i) => {
       let cls = 'text-neutral-500';
@@ -235,8 +335,8 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
       );
     });
 
-  // Outer container height = exactly 3 lines × line-height (2.2rem each = 6.6rem)
   const THREE_LINES = '6.6rem';
+  const rawWpmVal = timeElapsed > 0 ? Math.round((totalAttempts / 5) / (timeElapsed / 60)) : 0;
 
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col gap-6 select-none">
@@ -247,7 +347,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
         }
       `}</style>
 
-      {/* ── Config bar ── */}
+      {/* Config bar */}
       {!isTask && !isStarted && !isCompleted && (
         <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 text-sm">
           {/* Language */}
@@ -352,7 +452,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
         </div>
       )}
 
-      {/* ── Typing area ── */}
+      {/* Typing area */}
       {!isCompleted ? (
         <div
           onClick={() => inputRef.current?.focus()}
@@ -391,11 +491,9 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
             </div>
           </div>
 
-          {/* ── Fixed 3-line viewport — overflow hidden ── */}
-          <div
-            style={{ height: THREE_LINES, overflow: 'hidden', position: 'relative' }}
-          >
-            {/* Sliding text container */}
+          {/* Viewport */}
+          <div style={{ height: THREE_LINES, overflow: 'hidden', position: 'relative' }}>
+            {/* Sliding text wrapper */}
             <div
               ref={innerRef}
               style={{
@@ -406,7 +504,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
               }}
               className="tracking-wide break-words whitespace-pre-wrap"
             >
-              {/* ── Ultra-smooth caret — CSS transitions on left/top ── */}
+              {/* Caret */}
               <div
                 style={{
                   position: 'absolute',
@@ -416,10 +514,9 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                   height: `${caretH}px`,
                   background: '#f59e0b',
                   borderRadius: '2px',
-                  // GPU-composited smooth glide between characters
                   transition: 'left 0.07s ease-out, top 0.07s ease-out, opacity 0.1s',
                   opacity: caretVis ? 1 : 0,
-                  animation: caretVis ? 'caretBlink 1.1s step-end infinite' : 'none',
+                  animation: caretVis && isCaretBlinking ? 'caretBlink 1.1s step-end infinite' : 'none',
                   zIndex: 10,
                   pointerEvents: 'none',
                 }}
@@ -451,13 +548,34 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
           />
         </div>
       ) : (
-        /* ── Results ── */
+        /* Results View */
         <div className="p-8 rounded-2xl border border-neutral-800 bg-neutral-900/60 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center gap-3 border-b border-neutral-800 pb-4">
             <Trophy className="text-amber-400" size={28} />
             <h2 className="text-xl font-bold text-neutral-100">Practice Completed!</h2>
           </div>
 
+          {/* Minimalist Monkeytype-Style Chart */}
+          {chartData.length > 0 && (
+            <div className="w-full h-64 bg-neutral-950/40 p-4 rounded-xl border border-neutral-800/80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid stroke="#262626" vertical={false} />
+                  <XAxis dataKey="second" stroke="#737373" fontSize={12} tickLine={false} />
+                  <YAxis yAxisId="left" stroke="#d97706" fontSize={12} tickLine={false} label={{ value: 'wpm', angle: -90, position: 'insideLeft', fill: '#d97706' }} />
+                  <YAxis yAxisId="right" orientation="right" stroke="#ef4444" fontSize={12} tickLine={false} label={{ value: 'errors', angle: 90, position: 'insideRight', fill: '#ef4444' }} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#171717', borderColor: '#262626', borderRadius: '8px' }}
+                    labelStyle={{ color: '#a3a3a3' }}
+                  />
+                  <Line yAxisId="left" type="monotone" dataKey="wpm" stroke="#d97706" strokeWidth={2} dot={false} name="WPM" />
+                  <Line yAxisId="right" type="monotone" dataKey="errors" stroke="#ef4444" strokeWidth={1} dot={{ r: 2 }} name="Errors" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Standard Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: 'Speed',         value: <>{wpm} <span className="text-sm font-semibold text-neutral-400">WPM</span></>,  cls: 'text-amber-400' },
@@ -470,6 +588,26 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                 <span className={`font-bold text-3xl sm:text-4xl font-mono mt-1 ${cls}`}>{value}</span>
               </div>
             ))}
+          </div>
+
+          {/* Monkeytype Advanced Metrics Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-neutral-800/80">
+            <div className="bg-neutral-950/20 p-4 rounded-xl border border-neutral-800/50 flex flex-col">
+              <span className="text-neutral-500 text-xs font-medium uppercase tracking-wider">Raw WPM</span>
+              <span className="text-xl font-bold font-mono text-neutral-300 mt-1">{rawWpmVal} WPM</span>
+            </div>
+            
+            <div className="bg-neutral-950/20 p-4 rounded-xl border border-neutral-800/50 flex flex-col">
+              <span className="text-neutral-500 text-xs font-medium uppercase tracking-wider">Accuracy Ratio (C/I/E/M)</span>
+              <span className="text-xl font-bold font-mono text-neutral-300 mt-1">
+                {correctChars}/{incorrectChars}/0/0
+              </span>
+            </div>
+
+            <div className="bg-neutral-950/20 p-4 rounded-xl border border-neutral-800/50 flex flex-col">
+              <span className="text-neutral-500 text-xs font-medium uppercase tracking-wider">Consistency</span>
+              <span className="text-xl font-bold font-mono text-neutral-300 mt-1">{calculateConsistency()}%</span>
+            </div>
           </div>
 
           {saveStatus && (
