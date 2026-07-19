@@ -26,11 +26,10 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 2. General Leaderboard ─────────────────────────────────────────────
-    // Fetch ALL approved users with role USER, sort in-memory (avoids composite index)
+    // Fetch ALL approved users (both STUDENT and USER), sort in-memory (avoids composite index)
     const generalSnap = await db
       .collection('users')
       .where('status', '==', 'APPROVED')
-      .where('role', '==', 'USER')
       .get();
 
     const general = generalSnap.docs

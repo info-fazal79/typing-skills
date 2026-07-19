@@ -282,6 +282,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                 onClick={() => {
                   setDuration(t);
                   setIsCustomDuration(false);
+                  resetEngine(t);
                 }}
                 className={`px-3 py-1.5 rounded-md font-medium transition-all ${
                   duration === t && !isCustomDuration
@@ -298,7 +299,10 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                 onSubmit={(e) => {
                   e.preventDefault();
                   const val = parseInt(customDurationInput);
-                  if (val > 0) setDuration(val);
+                  if (val > 0) {
+                    setDuration(val);
+                    resetEngine(val);
+                  }
                 }}
                 className="flex items-center ml-1"
               >
@@ -311,7 +315,10 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                   onChange={(e) => setCustomDurationInput(e.target.value)}
                   onBlur={() => {
                     const val = parseInt(customDurationInput);
-                    if (val > 0) setDuration(val);
+                    if (val > 0) {
+                      setDuration(val);
+                      resetEngine(val);
+                    }
                   }}
                   className="w-16 px-2 py-1 bg-neutral-900 border border-amber-500/50 text-amber-400 rounded focus:outline-hidden text-sm"
                   placeholder="sec"

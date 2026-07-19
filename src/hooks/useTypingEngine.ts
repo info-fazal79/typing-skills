@@ -59,13 +59,20 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
 
     // Stop if user reaches the end of the target text
     if (value.length >= targetText.length) {
-      setTypedText(targetText);
+      setTypedText(value.substring(0, targetText.length));
       setIsCompleted(true);
       if (timerRef.current) clearInterval(timerRef.current);
     } else {
       setTypedText(value);
     }
   }, [isStarted, isCompleted, typedText, targetText]);
+
+  // Sync timeLeft if durationLimitSeconds changes before starting
+  useEffect(() => {
+    if (!isStarted && !isCompleted) {
+      setTimeLeft(durationLimitSeconds);
+    }
+  }, [durationLimitSeconds, isStarted, isCompleted]);
 
   // Cleanup on unmount
   useEffect(() => {
