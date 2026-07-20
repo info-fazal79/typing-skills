@@ -1,0 +1,57 @@
+name: Deploy to cPanel Subdomain
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy via FTP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚚 Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Production Code
+        run: npm run build
+        env:
+          # If there are public environment variables needed at build time,
+          # they can be specified here:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: 📂 Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # Exclude source code files, devConfigs, git, node_modules from uploading.
+          # We only need the compiled build (.next), static assets (public), startup files (server.js), and package configs.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            src/**
+            tsconfig.json
+            postcss.config.mjs
+            tailwind.config.js
+            eslint.config.mjs
+            README.md
+
+      - name: 🔄 Restart cPanel Phusion Passenger App
+        # Creating or touching tmp/restart.txt inside the application root
+        # triggers cPanel's Passenger server to reload on the next request.
+        run: |
+          mkdir -p tmp
+          touch tmp/restart.txt
