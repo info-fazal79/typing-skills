@@ -138,7 +138,15 @@ export async function GET(req: NextRequest) {
 
       allSessions = allSessionsSnap.docs.map((doc) => {
         const s = doc.data();
-        const createdAt = s.createdAt?.toDate ? s.createdAt.toDate() : new Date(s.createdAt);
+        let createdAt: Date;
+        if (s.createdAt?.toDate) {
+          createdAt = s.createdAt.toDate();
+        } else if (s.createdAt) {
+          createdAt = new Date(s.createdAt);
+        } else {
+          createdAt = new Date();
+        }
+
         return {
           id: doc.id,
           wpm: s.wpm ?? 0,
@@ -147,15 +155,19 @@ export async function GET(req: NextRequest) {
           language: s.language ?? 'English',
           mode: s.mode ?? 'Standard',
           createdAt,
-          date: createdAt.toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          }),
-          time: createdAt.toLocaleTimeString(undefined, {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
+          date: !isNaN(createdAt.getTime())
+            ? createdAt.toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })
+            : 'N/A',
+          time: !isNaN(createdAt.getTime())
+            ? createdAt.toLocaleTimeString(undefined, {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : 'N/A',
         };
       });
 
@@ -195,7 +207,17 @@ export async function GET(req: NextRequest) {
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
       const daySeconds = allSessions
-        .filter((s) => s.createdAt.toISOString().split('T')[0] === dateStr)
+        .filter((s) => {
+          try {
+            return (
+              s.createdAt instanceof Date &&
+              !isNaN(s.createdAt.getTime()) &&
+              s.createdAt.toISOString().split('T')[0] === dateStr
+            );
+          } catch {
+            return false;
+          }
+        })
         .reduce((sum, s) => sum + s.duration, 0);
       dailyPracticeHistory.push({
         dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
