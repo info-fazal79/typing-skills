@@ -129,13 +129,11 @@ export function Navbar() {
         <div className="flex items-center gap-3">
           {user ? (
             <div className="flex items-center gap-3 sm:gap-4">
-              {/* Point Badge (Student only) */}
-              {user.role === 'STUDENT' && (
-                <div className="flex items-center gap-1.5 bg-neutral-950 px-2.5 py-1 rounded-full border border-neutral-800" title="Your total points">
-                  <Award size={14} className="text-amber-500" />
-                  <span className="font-mono text-xs font-bold text-neutral-300">{user.points} pts</span>
-                </div>
-              )}
+              {/* Point Badge (Unconditional for logged-in users) */}
+              <div className="flex items-center gap-1.5 bg-neutral-950 px-2.5 py-1 rounded-full border border-neutral-800" title="Your total points">
+                <Award size={14} className="text-amber-500" />
+                <span className="font-mono text-xs font-bold text-neutral-300">{user.points ?? 0} pts</span>
+              </div>
 
               {/* User Dropdown / Label */}
               <div className="hidden md:flex flex-col text-right">
