@@ -216,11 +216,17 @@ export default function LeaderboardPage() {
                   <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
                     <th className="py-4 px-5 text-center w-14">Rank</th>
                     <th className="py-4 px-5">Name</th>
-                    {activeTab === 'batch' && (
+                    {activeTab === 'batch' ? (
                       <>
                         <th className="py-4 px-5">Course</th>
                         <th className="py-4 px-5">Batch</th>
                         <th className="py-4 px-5">Roll</th>
+                      </>
+                    ) : (
+                      <>
+                        <th className="py-4 px-5">Type</th>
+                        <th className="py-4 px-5">Course</th>
+                        <th className="py-4 px-5">Batch</th>
                       </>
                     )}
                     <th className="py-4 px-5 text-right">Best WPM</th>
@@ -235,7 +241,7 @@ export default function LeaderboardPage() {
                     >
                       <td className="py-4 px-5 text-center">{renderRankBadge(idx + 1)}</td>
                       <td className="py-4 px-5 font-bold text-neutral-200">{entry.name}</td>
-                      {activeTab === 'batch' && (
+                      {activeTab === 'batch' ? (
                         <>
                           <td className="py-4 px-5 text-neutral-400">{entry.courseName || '—'}</td>
                           <td className="py-4 px-5">
@@ -244,6 +250,30 @@ export default function LeaderboardPage() {
                             </span>
                           </td>
                           <td className="py-4 px-5 font-mono text-neutral-400 text-[11px]">{entry.rollNumber || '—'}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="py-4 px-5">
+                            {entry.role === 'STUDENT' ? (
+                              <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide">
+                                Student
+                              </span>
+                            ) : (
+                              <span className="bg-neutral-800/50 text-neutral-400 border border-neutral-700/50 px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide">
+                                General
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-4 px-5 text-neutral-400">{entry.role === 'STUDENT' ? (entry.courseName || '—') : '—'}</td>
+                          <td className="py-4 px-5">
+                            {entry.role === 'STUDENT' && entry.batchName ? (
+                              <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[10px] font-semibold text-neutral-300">
+                                {entry.batchName}
+                              </span>
+                            ) : (
+                              <span className="text-neutral-500">—</span>
+                            )}
+                          </td>
                         </>
                       )}
                       <td className="py-4 px-5 text-right font-mono font-bold text-sky-400">{entry.bestWpm} <span className="text-[10px] text-neutral-500">wpm</span></td>

@@ -38,6 +38,9 @@ export async function GET(req: NextRequest) {
         return {
           id: doc.id,
           name: d.name,
+          role: d.role ?? 'USER',
+          courseName: d.courseName ?? '',
+          batchName: d.batchName ?? '',
           points: d.points ?? 0,
           bestWpm: d.bestWpm ?? 0,
           avgWpm: d.avgWpm ?? 0,
