@@ -219,7 +219,14 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      user: { ...user, points },
+      user: { 
+        ...user, 
+        points,
+        status: userData.status ?? user.status,
+        courseName: userData.courseName ?? '',
+        batchName: userData.batchName ?? '',
+        rollNumber: userData.rollNumber ?? '',
+      },
       targets: {
         targetMinutes,
         pointsDeduction,

@@ -240,6 +240,12 @@ export default function DashboardPage() {
                 <span>Roll: <strong className="text-neutral-300">{user.rollNumber || 'N/A'}</strong></span>
               </p>
             )}
+            {user?.role === 'USER' && (
+              <p className="text-xs text-neutral-500 mt-1 flex flex-wrap gap-x-3">
+                <span>Account Type: <strong className="text-neutral-300">General User</strong></span>
+                <span>Mode: <strong className="text-neutral-300">Self Practice</strong></span>
+              </p>
+            )}
           </div>
           {user?.role === 'STUDENT' && (
             <div className="flex items-center gap-2 bg-neutral-950 px-4 py-2.5 rounded-xl border border-neutral-800">
