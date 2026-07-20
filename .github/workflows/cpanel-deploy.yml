@@ -37,13 +37,17 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: /typing.muhammadfazal.com/
+          secure: false
           # Exclude source code files, devConfigs, git, node_modules from uploading.
           # We only need the compiled build (.next), static assets (public), startup files (server.js), and package configs.
           exclude: |
             **/.git*
             **/.git*/**
-            **/node_modules/**
+            node_modules/**
+            node_modules/**/*
+            node_modules
             src/**
+            src/**/*
             tsconfig.json
             postcss.config.mjs
             tailwind.config.js
