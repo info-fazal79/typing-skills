@@ -18,6 +18,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [metadata, setMetadata] = useState<{ courses: Record<string, string[]>, rollNumbersByBatch: Record<string, string[]> }>({ courses: {}, rollNumbersByBatch: {} });
+  const [selectedPending, setSelectedPending] = useState<string[]>([]);
 
   // Metadata Form States
   const [newCourse, setNewCourse] = useState('');
@@ -113,6 +114,37 @@ export default function AdminPage() {
       }
     } catch (e) {
       setError('Failed to update student state.');
+    }
+  };
+
+  // Bulk Update Status
+  const handleBulkAction = async (action: 'APPROVE' | 'REJECT') => {
+    if (selectedPending.length === 0) return;
+    setMessage('');
+    setError('');
+    
+    // Warn before rejecting
+    if (action === 'REJECT' && !confirm(`Are you sure you want to reject and delete ${selectedPending.length} user(s)?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: selectedPending, action }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMessage(data.message);
+        setSelectedPending([]);
+        loadAdminData();
+      } else {
+        setError(data.error);
+      }
+    } catch (e) {
+      setError('Failed to perform bulk action.');
     }
   };
 
@@ -369,10 +401,51 @@ export default function AdminPage() {
                     No pending registration approvals found.
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto relative">
+                    {/* Floating Action Bar */}
+                    {selectedPending.length > 0 && (
+                      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-neutral-900 border border-neutral-700 shadow-xl shadow-black/50 px-4 py-2.5 rounded-xl flex items-center gap-4 animate-in slide-in-from-top-4 fade-in duration-200">
+                        <span className="text-xs font-bold text-neutral-300">
+                          {selectedPending.length} selected
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleBulkAction('APPROVE')}
+                            className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95"
+                          >
+                            <CheckCircle2 size={14} />
+                            Bulk Approve
+                          </button>
+                          <button
+                            onClick={() => handleBulkAction('REJECT')}
+                            className="flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-neutral-950 border border-red-500/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95"
+                          >
+                            <Trash2 size={14} />
+                            Bulk Reject
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
+                          <th className="py-4 px-6 w-10">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-neutral-950 cursor-pointer"
+                              checked={
+                                students.filter(s => s.status === 'PENDING').length > 0 &&
+                                selectedPending.length === students.filter(s => s.status === 'PENDING').length
+                              }
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedPending(students.filter(s => s.status === 'PENDING').map(s => s.id));
+                                } else {
+                                  setSelectedPending([]);
+                                }
+                              }}
+                            />
+                          </th>
                           <th className="py-4 px-6">Student Name</th>
                           <th className="py-4 px-6">Email Address</th>
                           <th className="py-4 px-6">Course</th>
@@ -383,7 +456,21 @@ export default function AdminPage() {
                       </thead>
                       <tbody className="divide-y divide-neutral-900/60">
                         {students.filter(s => s.status === 'PENDING').map((student) => (
-                          <tr key={student.id} className="hover:bg-neutral-900/10 transition-colors">
+                          <tr key={student.id} className={`hover:bg-neutral-900/10 transition-colors ${selectedPending.includes(student.id) ? 'bg-amber-500/5' : ''}`}>
+                            <td className="py-4 px-6">
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-neutral-950 cursor-pointer"
+                                checked={selectedPending.includes(student.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedPending(prev => [...prev, student.id]);
+                                  } else {
+                                    setSelectedPending(prev => prev.filter(id => id !== student.id));
+                                  }
+                                }}
+                              />
+                            </td>
                             <td className="py-4 px-6 font-bold text-neutral-200">{student.name}</td>
                             <td className="py-4 px-6 text-neutral-400">{student.email}</td>
                             <td className="py-4 px-6 text-neutral-400">{student.courseName}</td>
