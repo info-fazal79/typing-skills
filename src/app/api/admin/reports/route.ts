@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
     reportData.sort((a, b) => b.points - a.points);
 
     return NextResponse.json({ report: reportData });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Fetch student report error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

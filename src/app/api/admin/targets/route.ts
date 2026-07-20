@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json({ targets: targets || [] });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Fetch targets error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       message: 'Batch target configuration updated successfully',
       target: { batchName: trimmedBatch, dailyTargetMinutes, pointsDeduction },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Upsert target error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

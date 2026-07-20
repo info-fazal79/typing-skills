@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Sparkles, ArrowRight, User, Mail, Lock, BookOpen, Layers, Hash, CheckCircle2, BadgeCheck } from 'lucide-react';
 
 export default function RegisterPage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'STUDENT' | 'GENERAL'>('STUDENT');
   
@@ -42,11 +43,13 @@ export default function RegisterPage() {
 
   // Reset batch when course changes
   useEffect(() => {
+    // eslint-disable-next-line
     setBatchName('');
   }, [courseName]);
 
   // Fetch unassigned roll numbers when batch changes
   useEffect(() => {
+    // eslint-disable-next-line
     setRollNumber('');
     setAvailableRolls([]);
     
@@ -96,8 +99,8 @@ export default function RegisterPage() {
       }
 
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }

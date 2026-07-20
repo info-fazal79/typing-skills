@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { TypingPractice } from '@/components/TypingPractice';
-import { Sparkles, Languages, Check, Star, BookOpen, ShieldAlert, Trophy } from 'lucide-react';
-import Link from 'next/link';
+import { Sparkles, Languages, Star, BookOpen, Trophy } from 'lucide-react';
 
 export default function LandingPage() {
   const [saveStatus, setSaveStatus] = useState<string>('');
@@ -37,7 +36,7 @@ export default function LandingPage() {
           setSaveStatus(result.error || 'Failed to save session stats.');
         }
       }
-    } catch (e) {
+    } catch {
       setSaveStatus('Error saving session stats.');
     }
   };

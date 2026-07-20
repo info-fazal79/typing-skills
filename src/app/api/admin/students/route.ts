@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ students });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Fetch students error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -80,7 +80,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
     }
 
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, any /* eslint-disable-line @typescript-eslint/no-explicit-any */> = {
       status,
       updated_at: new Date().toISOString(),
     };
@@ -102,7 +102,7 @@ export async function PUT(req: NextRequest) {
       message: `Student status successfully updated to ${status}`,
       student: updated,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Update student status error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

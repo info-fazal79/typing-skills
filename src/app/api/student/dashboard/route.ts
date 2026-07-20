@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Batch task assignments (STUDENT only) ─────────────────────────────
-    let formattedTasks: any[] = [];
+    let formattedTasks: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[] = [];
     if (batchName) {
       try {
         const { data: tasksSnap } = await supabase
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
           .select('*')
           .eq('user_id', user.id);
 
-        const submissionMap = new Map<string, any>();
+        const submissionMap = new Map<string, any /* eslint-disable-line @typescript-eslint/no-explicit-any */>();
         (submissionsSnap || []).forEach((s) => submissionMap.set(s.task_id, s));
 
         formattedTasks = (tasksSnap || [])
@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ── All practice sessions for this user ─────────────────────────────
-    let allSessions: any[] = [];
+    let allSessions: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[] = [];
     try {
       const { data: sessionsSnap } = await supabase
         .from('practice_sessions')
@@ -213,14 +213,14 @@ export async function GET(req: NextRequest) {
         performanceTrend,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Dashboard error:', error);
     return NextResponse.json({
       user: null,
       targets: { targetMinutes: 5, pointsDeduction: 10, todayMinutesPracticed: 0, todaySecondsPracticed: 0, percentComplete: 0 },
       tasks: [],
       analytics: { totalTests: 0, bestWpm: 0, avgWpm: 0, avgAccuracy: 0, sessions: [], dailyPractice: [], recentSessions: [], performanceTrend: 'new' },
-      _error: error?.message ?? 'Unknown error',
+      _error: (error instanceof Error ? error.message : 'Unknown error'),
     });
   }
 }

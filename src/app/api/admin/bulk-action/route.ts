@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       message: `Successfully ${action === 'APPROVE' ? 'approved' : 'rejected (and deleted)'} ${userIds.length} user(s).`,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Bulk action error:', error);
     return NextResponse.json(
       { error: 'Internal server error during bulk action.' },

@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       newPointsTotal: newPoints,
       session: { id: sessionId },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Save practice error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

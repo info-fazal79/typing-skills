@@ -1,0 +1,67 @@
+
+> typing-web@0.1.0 lint
+> eslint
+
+
+C:\Users\Fazal\Desktop\Typing Web\fix-lint.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\Fazal\Desktop\Typing Web\fix-lint2.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\Fazal\Desktop\Typing Web\scripts\migrate-to-supabase.js
+  1:33  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  5:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  6:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\Fazal\Desktop\Typing Web\server.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:19  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\Fazal\Desktop\Typing Web\src\app\admin\page.tsx
+    6:33  warning  'AlertTriangle' is defined but never used                                                                         @typescript-eslint/no-unused-vars
+    7:34  warning  'Award' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+    7:50  warning  'Calendar' is defined but never used                                                                              @typescript-eslint/no-unused-vars
+    7:60  warning  'Edit2' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+    7:67  warning  'Check' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+   96:6   warning  React Hook useEffect has a missing dependency: 'loadAdminData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  112:9   warning  Unused eslint-disable directive (no problems were reported)
+  117:14  warning  'e' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  144:9   warning  Unused eslint-disable directive (no problems were reported)
+  149:14  warning  'e' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  190:9   warning  Unused eslint-disable directive (no problems were reported)
+  195:14  warning  'e' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  228:9   warning  Unused eslint-disable directive (no problems were reported)
+  233:14  warning  'e' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  255:14  warning  'e' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  321:14  warning  'e' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  377:53  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+
+C:\Users\Fazal\Desktop\Typing Web\src\app\api\admin\students\route.ts
+  83:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Fazal\Desktop\Typing Web\src\app\api\auth\me\route.ts
+  14:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Fazal\Desktop\Typing Web\src\app\api\auth\register\route.ts
+  20:36  warning  'existingErr' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Fazal\Desktop\Typing Web\src\app\api\student\dashboard\route.ts
+  80:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Fazal\Desktop\Typing Web\src\app\dashboard\page.tsx
+  57:9  warning  Unused eslint-disable directive (no problems were reported)
+
+C:\Users\Fazal\Desktop\Typing Web\src\app\leaderboard\page.tsx
+   65:9   warning  Unused eslint-disable directive (no problems were reported)
+  167:21  warning  Unused eslint-disable directive (no problems were reported)
+
+✖ 37 problems (16 errors, 21 warnings)
+  0 errors and 7 warnings potentially fixable with the `--fix` option.
+

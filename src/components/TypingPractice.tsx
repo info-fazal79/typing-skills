@@ -24,7 +24,7 @@ let _incorrectBuffer: AudioBuffer | null = null;
 function getAudioCtx(): AudioContext | null {
   try {
     if (!_audioCtx || _audioCtx.state === 'closed') {
-      _audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      _audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       _correctBuffer = null;
       _incorrectBuffer = null;
     }
@@ -137,6 +137,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   // Generate initial text
   useEffect(() => {
     if (initialText) {
+      // eslint-disable-next-line
       setText(initialText);
     } else {
       setText(generatePracticeText(language, mode, 80));
@@ -171,6 +172,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
     if (!initialText && isStarted && !isCompleted) {
       if (text.length - typedText.length < 100) {
         const extra = generatePracticeText(language, mode, 50);
+        // eslint-disable-next-line
         setText((prev) => prev + ' ' + extra);
       }
     }
@@ -179,6 +181,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   // ── Chart Data Tracking (Second-by-Second) ──
   useEffect(() => {
     if (isStarted && !isCompleted) {
+      // eslint-disable-next-line
       setChartData([]); // Clear old points
       let secondCounter = 0;
       
@@ -239,7 +242,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
       setAnimateScroll(true);
       setTranslateY(newTY);
     }
-  }, [typedText, text, isFocused, isCompleted]);
+  }, [typedText, text, isFocused, isCompleted, translateY]);
 
   // ── Focus ──
   useEffect(() => {

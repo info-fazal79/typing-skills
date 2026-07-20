@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     );
 
     return NextResponse.json({ tasks });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Fetch admin tasks error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error('Create task error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

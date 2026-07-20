@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     const availableRolls = allRolls.filter(roll => !claimedRolls.has(roll));
 
     return NextResponse.json({ availableRolls });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to fetch available rolls:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

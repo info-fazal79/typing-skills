@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Sparkles, Trophy, LayoutDashboard, LogOut, ShieldAlert, Award, LogIn } from 'lucide-react';
+import { Sparkles, Trophy, LayoutDashboard, LogOut, Award, LogIn } from 'lucide-react';
 
 interface UserData {
   id: string;
@@ -34,7 +34,7 @@ export function Navbar() {
         } else {
           setUser(null);
         }
-      } catch (e) {
+      } catch {
         setUser(null);
       } finally {
         setLoading(false);

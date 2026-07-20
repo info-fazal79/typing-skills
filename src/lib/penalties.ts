@@ -49,7 +49,7 @@ export async function applyInactivityPenalties(userId: string) {
 
     if (startCheckDate >= yesterday) return;
 
-    let currentDate = new Date(startCheckDate);
+    const currentDate = new Date(startCheckDate);
     let totalDeductions = 0;
     const logsToCreate: { id: string; user_id: string; date: string; points_deducted: number; created_at: string }[] = [];
 
@@ -100,7 +100,7 @@ export async function applyInactivityPenalties(userId: string) {
 
     // Apply updates
     if (logsToCreate.length > 0) {
-      try { await supabase.from('inactivity_logs').upsert(logsToCreate); } catch (_) {} // ignore if table doesn't exist
+      try { await supabase.from('inactivity_logs').upsert(logsToCreate); } catch {} // ignore if table doesn't exist
     }
 
     const newPoints = Math.max(0, (user.points ?? 0) - totalDeductions);

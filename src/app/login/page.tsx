@@ -37,8 +37,8 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -105,7 +105,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-8 text-neutral-500 text-xs text-center">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/register" className="text-amber-500 hover:underline">
             Register as Student
           </Link>

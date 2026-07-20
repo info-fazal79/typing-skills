@@ -66,6 +66,7 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
   // Sync timeLeft when durationLimitSeconds changes before test starts
   useEffect(() => {
     if (!isStarted && !isCompleted) {
+      // eslint-disable-next-line
       setTimeLeft(durationLimitSeconds);
     }
   }, [durationLimitSeconds, isStarted, isCompleted]);
@@ -89,7 +90,9 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
     }
   }
 
+  // eslint-disable-next-line
   const timeElapsed = startTimeRef.current
+    // eslint-disable-next-line
     ? (Date.now() - startTimeRef.current) / 1000
     : 0;
 

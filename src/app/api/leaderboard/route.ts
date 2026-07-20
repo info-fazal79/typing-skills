@@ -86,14 +86,14 @@ export async function GET(req: NextRequest) {
       selectedBatch: defaultBatch,
       coursesMap,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Leaderboard error:', error);
     return NextResponse.json({
       general: [],
       batch: [],
       selectedBatch: '',
       coursesMap: {},
-      _error: error?.message ?? 'Unknown error',
+      _error: (error instanceof Error ? error.message : 'Unknown error'),
     });
   }
 }

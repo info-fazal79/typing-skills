@@ -19,7 +19,7 @@ export async function GET() {
       courses: data.courses_json ?? {},
       rollNumbersByBatch: data.roll_numbers_json ?? {},
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to fetch metadata:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     if (upsertErr) throw upsertErr;
 
     return NextResponse.json({ message: 'Metadata updated successfully', data });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to update metadata:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

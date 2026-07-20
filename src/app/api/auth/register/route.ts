@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     const userId = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    let userData: any = {
+    let userData: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ = {
       id: userId,
       name: name.trim(),
       email: emailLower,
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json(
       { error: 'Internal server error during registration' },

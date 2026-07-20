@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
       newPointsTotal: updatedUserPoints,
       submissionId,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Task submit error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

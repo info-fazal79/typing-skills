@@ -17,7 +17,7 @@ export function signToken(payload: TokenPayload): string {
 export function verifyToken(token: string): TokenPayload | null {
   try {
     return jwt.verify(token, JWT_SECRET) as TokenPayload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -50,7 +50,7 @@ export async function getUserFromRequest(req: NextRequest) {
       points: userDoc.points,
       createdAt: new Date(userDoc.created_at),
     };
-  } catch (e) {
+  } catch {
     return null;
   }
 }
