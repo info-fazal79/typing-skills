@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const emailLower = email.toLowerCase().trim();
 
     // Check if email exists
-    const { data: existing, error: existingErr } = await supabase
+    const { data: existing } = await supabase
       .from('users')
       .select('id')
       .eq('email', emailLower)

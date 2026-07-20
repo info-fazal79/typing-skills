@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { 
-  Users, CheckCircle2, XCircle, AlertTriangle, BookOpen, Plus, 
-  Trash2, ShieldAlert, Download, Award, Sliders, Calendar, Edit2, Check 
+  Users, CheckCircle2, XCircle, BookOpen, Plus, 
+  Trash2, ShieldAlert, Download, Sliders
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -50,7 +50,7 @@ export default function AdminPage() {
   const [targetPenalty, setTargetPenalty] = useState('10');
 
   // Load Admin Data
-  const loadAdminData = async () => {
+  const loadAdminData = useCallback(async () => {
     setLoading(true);
     try {
       // 1. Fetch Students
@@ -82,18 +82,18 @@ export default function AdminPage() {
         rollNumbersByBatch: metadataData.rollNumbersByBatch || {}
       });
 
-    } catch (e) {
-      console.error('Error fetching admin details:', e);
+    } catch (err) {
+      console.error('Error fetching admin details:', err);
       setError('Failed to load administration assets');
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterCourse, filterBatch, filterRoll, filterStatus]);
 
   useEffect(() => {
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAdminData();
-  }, [filterCourse, filterBatch, filterRoll, filterStatus]);
+  }, [loadAdminData]);
 
   // Update Student Status (Approve/Reject/Suspend)
   const handleUpdateStatus = async (studentId: string, status: string) => {
@@ -109,12 +109,11 @@ export default function AdminPage() {
       const data = await res.json();
       if (res.ok) {
         setMessage(data.message);
-        // eslint-disable-next-line
         loadAdminData();
       } else {
         setError(data.error);
       }
-    } catch (e) {
+    } catch {
       setError('Failed to update student state.');
     }
   };
@@ -141,12 +140,11 @@ export default function AdminPage() {
       if (res.ok) {
         setMessage(data.message);
         setSelectedPending([]);
-        // eslint-disable-next-line
         loadAdminData();
       } else {
         setError(data.error);
       }
-    } catch (e) {
+    } catch {
       setError('Failed to perform bulk action.');
     }
   };
@@ -187,12 +185,11 @@ export default function AdminPage() {
         setTaskContent('');
         setTaskDeadline('');
         setTaskBatches('');
-        // eslint-disable-next-line
         loadAdminData();
       } else {
         setError(data.error);
       }
-    } catch (e) {
+    } catch {
       setError('Failed to deploy task.');
     }
   };
@@ -225,12 +222,11 @@ export default function AdminPage() {
         setTargetBatchName('');
         setTargetMins('5');
         setTargetPenalty('10');
-        // eslint-disable-next-line
         loadAdminData();
       } else {
         setError(data.error);
       }
-    } catch (e) {
+    } catch {
       setError('Failed to update target parameters.');
     }
   };
@@ -252,7 +248,7 @@ export default function AdminPage() {
         const data = await res.json();
         setError(data.error || 'Failed to update metadata.');
       }
-    } catch (e) {
+    } catch {
       setError('Failed to save metadata.');
     }
   };
@@ -318,7 +314,7 @@ export default function AdminPage() {
       document.body.removeChild(link);
       
       setMessage('CSV exported successfully.');
-    } catch (e) {
+    } catch {
       setError('Failed to export CSV report.');
       setMessage('');
     }

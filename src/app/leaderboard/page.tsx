@@ -49,7 +49,7 @@ export default function LeaderboardPage() {
   // ── Fetch batch leaderboard when filters change ───────────────────────────
   useEffect(() => {
     if (!selectedBatch) {
-      // eslint-disable-next-line
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBatchData([]);
       return;
     }
@@ -62,7 +62,6 @@ export default function LeaderboardPage() {
         const json = await res.json();
         setBatchData(json.batch ?? []);
       } catch {
-        // eslint-disable-next-line
         setBatchData([]);
       } finally {
         setBatchLoading(false);
@@ -164,7 +163,6 @@ export default function LeaderboardPage() {
                   onChange={(e) => {
                     setSelectedCourse(e.target.value);
                     setSelectedBatch('');
-                    // eslint-disable-next-line
                     setBatchData([]);
                   }}
                   className="w-full appearance-none bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-xl py-2.5 pl-3 pr-8 text-xs font-semibold focus:outline-none focus:border-amber-500/40 transition-colors"

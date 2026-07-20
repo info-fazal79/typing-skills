@@ -54,7 +54,6 @@ export default function DashboardPage() {
       const json = await res.json();
       if (res.ok) {
         setTaskSubmitStatus(json.message);
-        // eslint-disable-next-line
         fetchDashboardData();
       } else {
         setTaskSubmitStatus('');
