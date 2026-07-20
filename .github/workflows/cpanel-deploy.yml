@@ -36,6 +36,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /typing.muhammadfazal.com/
           # Exclude source code files, devConfigs, git, node_modules from uploading.
           # We only need the compiled build (.next), static assets (public), startup files (server.js), and package configs.
           exclude: |
