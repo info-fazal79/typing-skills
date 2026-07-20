@@ -384,10 +384,19 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-900/50">
-                  {analytics.recentSessions.map((s: any, idx: number) => (
+                  {analytics.recentSessions.map((s: any, idx: number) => {
+                    // Format date/time in the browser's local timezone
+                    const dt = s.createdAtISO ? new Date(s.createdAtISO) : null;
+                    const dateStr = dt
+                      ? dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                      : 'N/A';
+                    const timeStr = dt
+                      ? dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+                      : 'N/A';
+                    return (
                     <tr key={s.id ?? idx} className="hover:bg-neutral-900/30 transition-colors">
-                      <td className="py-3 px-3 text-neutral-400">{s.date}</td>
-                      <td className="py-3 px-3 text-neutral-500">{s.time}</td>
+                      <td className="py-3 px-3 text-neutral-400">{dateStr}</td>
+                      <td className="py-3 px-3 text-neutral-500">{timeStr}</td>
                       <td className="py-3 px-3 text-right font-mono font-bold text-amber-400">{s.wpm}</td>
                       <td className="py-3 px-3 text-right font-mono text-neutral-300">{s.accuracy}%</td>
                       <td className="py-3 px-3 text-right text-neutral-400">{s.duration}s</td>
@@ -398,7 +407,8 @@ export default function DashboardPage() {
                         </span>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

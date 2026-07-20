@@ -154,25 +154,14 @@ export async function GET(req: NextRequest) {
           duration: s.duration ?? 0,
           language: s.language ?? 'English',
           mode: s.mode ?? 'Standard',
-          createdAt,
-          date: !isNaN(createdAt.getTime())
-            ? createdAt.toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })
-            : 'N/A',
-          time: !isNaN(createdAt.getTime())
-            ? createdAt.toLocaleTimeString(undefined, {
-                hour: '2-digit',
-                minute: '2-digit',
-              })
-            : 'N/A',
+          // Send raw UTC ISO string — the browser will format it in the user's local timezone
+          createdAtISO: !isNaN(createdAt.getTime()) ? createdAt.toISOString() : null,
+          createdAt: createdAt.toISOString(), // keep for sort (serialisable)
         };
       });
 
-      // Sort in-memory (newest first)
-      allSessions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      // Sort in-memory (newest first) — createdAt is now an ISO string
+      allSessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (e) {
       console.warn('All sessions fetch failed (non-fatal):', e);
     }
@@ -197,7 +186,7 @@ export async function GET(req: NextRequest) {
       id: s.id,
       wpm: s.wpm,
       accuracy: s.accuracy,
-      date: s.date,
+      createdAtISO: s.createdAtISO,
     }));
 
     // Daily practice minutes — last 7 days (in-memory from allSessions)
@@ -209,11 +198,7 @@ export async function GET(req: NextRequest) {
       const daySeconds = allSessions
         .filter((s) => {
           try {
-            return (
-              s.createdAt instanceof Date &&
-              !isNaN(s.createdAt.getTime()) &&
-              s.createdAt.toISOString().split('T')[0] === dateStr
-            );
+            return s.createdAt && s.createdAt.split('T')[0] === dateStr;
           } catch {
             return false;
           }
