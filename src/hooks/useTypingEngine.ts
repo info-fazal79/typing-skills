@@ -47,7 +47,16 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
 
     // Track total keystrokes (forward only, not backspace)
     if (value.length > typedText.length) {
-      setTotalAttempts((prev) => prev + (value.length - typedText.length));
+      const typedChar = value[value.length - 1];
+      const targetChar = targetText[typedText.length];
+
+      setTotalAttempts((prev) => prev + 1);
+
+      // STRICT SPACE RULE: If the target character is a space,
+      // and the typed character is NOT a space, do not advance the input.
+      if (targetChar === ' ' && typedChar !== ' ') {
+        return;
+      }
     }
 
     // Clamp to target length — do NOT auto-complete; rely on timer

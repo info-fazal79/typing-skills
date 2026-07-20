@@ -539,6 +539,17 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
             ref={inputRef}
             value={typedText}
             onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={(e) => {
+              const activeIndex = typedText.length;
+              const targetChar = text[activeIndex];
+              // If target is a space, and user types a non-space character (length 1), play error sound and reset caret timer
+              if (targetChar === ' ' && e.key.length === 1 && e.key !== ' ') {
+                if (soundRef.current) {
+                  playClick(false);
+                }
+                registerKeystrokeForCaret();
+              }
+            }}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             className="absolute top-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
