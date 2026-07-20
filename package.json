@@ -9,7 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.7",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
     "firebase-admin": "^14.2.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.25.0",

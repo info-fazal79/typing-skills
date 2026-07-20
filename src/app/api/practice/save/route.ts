@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 import { applyInactivityPenalties } from '@/lib/penalties';
-import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,54 +32,54 @@ export async function POST(req: NextRequest) {
     const pointsEarned = Math.max(0, Math.min(80, calculatedPoints));
 
     const sessionId = crypto.randomUUID();
-    const now = new Date();
+    const now = new Date().toISOString();
 
-    const sessionData = {
-      userId: user.id,
+    // Insert the new practice session
+    const { error: sessionErr } = await supabase.from('practice_sessions').insert({
+      id: sessionId,
+      user_id: user.id,
       wpm: parseFloat(wpm),
       accuracy: parseFloat(accuracy),
       duration: parseInt(duration),
       language: language.toUpperCase(),
       mode,
-      pointsEarned,
-      createdAt: now,
-    };
-
-    // Atomic batch write: save session + increment user points
-    const batch = db.batch();
-    batch.set(db.collection('practice_sessions').doc(sessionId), sessionData);
+      points_earned: pointsEarned,
+      created_at: now,
+    });
+    if (sessionErr) throw sessionErr;
 
     // Fetch existing user stats to compute bestWpm / avgWpm
-    const currentUserSnap = await db.collection('users').doc(user.id).get();
-    const currentUserData = currentUserSnap.data() ?? {};
-    const currentBestWpm: number = currentUserData.bestWpm ?? 0;
-    const currentTotalWpm: number = currentUserData.totalWpmSum ?? 0;
-    const currentSessionCount: number = currentUserData.sessionCount ?? 0;
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('best_wpm, total_wpm_sum, session_count, points')
+      .eq('id', user.id)
+      .single();
+
+    const currentBestWpm: number = currentUser?.best_wpm ?? 0;
+    const currentTotalWpm: number = currentUser?.total_wpm_sum ?? 0;
+    const currentSessionCount: number = currentUser?.session_count ?? 0;
 
     const newBestWpm = Math.max(currentBestWpm, parseFloat(wpm));
     const newTotalWpm = currentTotalWpm + parseFloat(wpm);
     const newSessionCount = currentSessionCount + 1;
     const newAvgWpm = Math.round(newTotalWpm / newSessionCount);
+    const newPoints = (currentUser?.points ?? 0) + pointsEarned;
 
-    batch.update(db.collection('users').doc(user.id), {
-      points: FieldValue.increment(pointsEarned),
-      bestWpm: newBestWpm,
-      avgWpm: newAvgWpm,
-      totalWpmSum: newTotalWpm,
-      sessionCount: newSessionCount,
-      updatedAt: now,
-    });
-    await batch.commit();
-
-    // Fetch updated points
-    const updatedUser = await db.collection('users').doc(user.id).get();
-    const newPointsTotal = updatedUser.data()?.points ?? user.points + pointsEarned;
+    // Update user stats
+    await supabase.from('users').update({
+      points: newPoints,
+      best_wpm: newBestWpm,
+      avg_wpm: newAvgWpm,
+      total_wpm_sum: newTotalWpm,
+      session_count: newSessionCount,
+      updated_at: now,
+    }).eq('id', user.id);
 
     return NextResponse.json({
       message: 'Practice session saved successfully',
       pointsEarned,
-      newPointsTotal,
-      session: { id: sessionId, ...sessionData },
+      newPointsTotal: newPoints,
+      session: { id: sessionId },
     });
   } catch (error: any) {
     console.error('Save practice error:', error);

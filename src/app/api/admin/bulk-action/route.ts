@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
@@ -19,21 +19,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid action type.' }, { status: 400 });
     }
 
-    const batch = db.batch();
-
-    for (const userId of userIds) {
-      const userRef = db.collection('users').doc(userId);
-      if (action === 'APPROVE') {
-        batch.update(userRef, {
-          status: 'APPROVED',
-          updatedAt: new Date(),
-        });
-      } else if (action === 'REJECT') {
-        batch.delete(userRef);
-      }
+    if (action === 'APPROVE') {
+      const { error } = await supabase
+        .from('users')
+        .update({ status: 'APPROVED', updated_at: new Date().toISOString() })
+        .in('id', userIds);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .in('id', userIds);
+      if (error) throw error;
     }
-
-    await batch.commit();
 
     return NextResponse.json({
       message: `Successfully ${action === 'APPROVE' ? 'approved' : 'rejected (and deleted)'} ${userIds.length} user(s).`,

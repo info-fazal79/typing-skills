@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 import { applyInactivityPenalties } from '@/lib/penalties';
-import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,12 +27,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch the task
-    const taskDoc = await db.collection('tasks').doc(taskId).get();
-    if (!taskDoc.exists) {
+    const { data: task, error: taskErr } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', taskId)
+      .single();
+
+    if (taskErr || !task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
-
-    const task = taskDoc.data()!;
 
     // Verify task is assigned to student's batch
     const batches: string[] = task.batches ?? [];
@@ -42,68 +44,67 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if thresholds are met
-    if (wpm < task.targetWpm || accuracy < task.targetAccuracy) {
+    if (wpm < task.target_wpm || accuracy < task.target_accuracy) {
       return NextResponse.json(
         {
-          error: `Requirements not met. You need at least ${task.targetWpm} WPM and ${task.targetAccuracy}% accuracy.`,
-          wpmMet: wpm >= task.targetWpm,
-          accuracyMet: accuracy >= task.targetAccuracy,
+          error: `Requirements not met. You need at least ${task.target_wpm} WPM and ${task.target_accuracy}% accuracy.`,
+          wpmMet: wpm >= task.target_wpm,
+          accuracyMet: accuracy >= task.target_accuracy,
         },
         { status: 400 }
       );
     }
 
     const now = new Date();
-    const isLate = now > task.deadline.toDate();
+    const isLate = now > new Date(task.deadline);
 
     // Check for existing submission
-    const existingSnap = await db
-      .collection('task_submissions')
-      .where('taskId', '==', taskId)
-      .where('studentId', '==', user.id)
-      .limit(1)
-      .get();
+    const { data: existingSnap } = await supabase
+      .from('task_submissions')
+      .select('*')
+      .eq('task_id', taskId)
+      .eq('user_id', user.id)
+      .limit(1);
 
     let submissionId: string;
     let pointsToAward = 0;
     let updatedUserPoints = user.points;
 
-    if (!existingSnap.empty) {
+    if (existingSnap && existingSnap.length > 0) {
       // Update best stats but no extra points
-      const existingDoc = existingSnap.docs[0];
-      const existing = existingDoc.data();
-      await db.collection('task_submissions').doc(existingDoc.id).update({
+      const existing = existingSnap[0];
+      await supabase.from('task_submissions').update({
         wpm: Math.max(existing.wpm, parseFloat(wpm)),
         accuracy: Math.max(existing.accuracy, parseFloat(accuracy)),
-        updatedAt: now,
-      });
-      submissionId = existingDoc.id;
+      }).eq('id', existing.id);
+      submissionId = existing.id;
     } else {
       // First submission — award points if on time
-      pointsToAward = isLate ? 0 : task.pointsAwardable;
+      pointsToAward = isLate ? 0 : task.points_awardable;
       submissionId = crypto.randomUUID();
 
-      const firestoreBatch = db.batch();
-      firestoreBatch.set(db.collection('task_submissions').doc(submissionId), {
-        taskId,
-        studentId: user.id,
+      await supabase.from('task_submissions').insert({
+        id: submissionId,
+        task_id: taskId,
+        user_id: user.id,
         wpm: parseFloat(wpm),
         accuracy: parseFloat(accuracy),
-        pointsEarned: pointsToAward,
-        isLate,
-        completedAt: now,
+        points_earned: pointsToAward,
+        is_late: isLate,
+        created_at: now.toISOString(),
       });
-      if (pointsToAward > 0) {
-        firestoreBatch.update(db.collection('users').doc(user.id), {
-          points: FieldValue.increment(pointsToAward),
-          updatedAt: now,
-        });
-      }
-      await firestoreBatch.commit();
 
-      // Get updated points
-      const updatedUser = await db.collection('users').doc(user.id).get();
-      updatedUserPoints = updatedUser.data()?.points ?? user.points + pointsToAward;
+      if (pointsToAward > 0) {
+        const { data: currentUser } = await supabase
+          .from('users')
+          .select('points')
+          .eq('id', user.id)
+          .single();
+
+        const newPoints = (currentUser?.points ?? 0) + pointsToAward;
+        await supabase.from('users').update({ points: newPoints, updated_at: now.toISOString() }).eq('id', user.id);
+        updatedUserPoints = newPoints;
+      }
     }
 
     return NextResponse.json({

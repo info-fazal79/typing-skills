@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
-import { db } from './firebase';
+import { supabase } from './supabase';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'typing_institute_secret_key_987654321';
 
@@ -30,21 +30,25 @@ export async function getUserFromRequest(req: NextRequest) {
   if (!payload) return null;
 
   try {
-    const userDoc = await db.collection('users').doc(payload.userId).get();
-    if (!userDoc.exists) return null;
+    const { data: userDoc, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', payload.userId)
+      .single();
 
-    const data = userDoc.data()!;
+    if (error || !userDoc) return null;
+
     return {
       id: userDoc.id,
-      name: data.name,
-      email: data.email,
-      role: data.role,
-      courseName: data.courseName ?? null,
-      batchName: data.batchName ?? null,
-      rollNumber: data.rollNumber ?? null,
-      status: data.status,
-      points: data.points ?? 0,
-      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+      name: userDoc.name,
+      email: userDoc.email,
+      role: userDoc.role,
+      courseName: userDoc.course_name,
+      batchName: userDoc.batch_name,
+      rollNumber: userDoc.roll_number,
+      status: userDoc.status,
+      points: userDoc.points,
+      createdAt: new Date(userDoc.created_at),
     };
   } catch (e) {
     return null;

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 
-// GET: Fetch student directory with optional filters
+// GET: Fetch user directory with optional filters
 export async function GET(req: NextRequest) {
   try {
     const admin = await getUserFromRequest(req);
@@ -16,40 +16,35 @@ export async function GET(req: NextRequest) {
     const batch = searchParams.get('batch');
     const roll = searchParams.get('roll');
 
-    let query: FirebaseFirestore.Query = db
-      .collection('users')
-      .where('role', '==', 'STUDENT');
+    let query = supabase
+      .from('users')
+      .select('*')
+      .eq('role', 'STUDENT');
 
-    if (status) query = query.where('status', '==', status);
-    if (batch) query = query.where('batchName', '==', batch);
+    if (status) query = query.eq('status', status);
+    if (batch) query = query.eq('batch_name', batch);
 
-    const snap = await query.get();
+    const { data: snap, error } = await query;
+    if (error) throw error;
 
-    let students = snap.docs.map((doc) => {
-      const d = doc.data();
-      return {
-        id: doc.id,
-        name: d.name,
-        email: d.email,
-        courseName: d.courseName,
-        batchName: d.batchName,
-        rollNumber: d.rollNumber,
-        status: d.status,
-        points: d.points ?? 0,
-        createdAt: d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt),
-      };
-    });
+    let students = (snap || []).map((d) => ({
+      id: d.id,
+      name: d.name,
+      email: d.email,
+      courseName: d.course_name,
+      batchName: d.batch_name,
+      rollNumber: d.roll_number,
+      status: d.status,
+      points: d.points ?? 0,
+      createdAt: new Date(d.created_at),
+    }));
 
-    // Client-side filtering for contains-style filters (Firestore doesn't support LIKE)
+    // Client-side filtering for contains-style filters
     if (course) {
-      students = students.filter((s) =>
-        s.courseName?.toLowerCase().includes(course.toLowerCase())
-      );
+      students = students.filter((s) => s.courseName?.toLowerCase().includes(course.toLowerCase()));
     }
     if (roll) {
-      students = students.filter((s) =>
-        s.rollNumber?.toLowerCase().includes(roll.toLowerCase())
-      );
+      students = students.filter((s) => s.rollNumber?.toLowerCase().includes(roll.toLowerCase()));
     }
 
     // Sort: PENDING first, then by createdAt desc
@@ -87,21 +82,25 @@ export async function PUT(req: NextRequest) {
 
     const updateData: Record<string, any> = {
       status,
-      updatedAt: new Date(),
+      updated_at: new Date().toISOString(),
     };
 
     if (status === 'APPROVED') {
-      updateData.lastPenaltyCheck = new Date();
+      updateData.last_penalty_check = new Date().toISOString();
     }
 
-    await db.collection('users').doc(studentId).update(updateData);
+    const { data: updated, error: updateErr } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', studentId)
+      .select('id, name, email, status')
+      .single();
 
-    const updatedDoc = await db.collection('users').doc(studentId).get();
-    const d = updatedDoc.data()!;
+    if (updateErr) throw updateErr;
 
     return NextResponse.json({
       message: `Student status successfully updated to ${status}`,
-      student: { id: studentId, name: d.name, email: d.email, status: d.status },
+      student: updated,
     });
   } catch (error: any) {
     console.error('Update student status error:', error);

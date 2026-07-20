@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 
 // GET: Fetch list of tasks with completion counts
@@ -10,30 +10,32 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tasksSnap = await db.collection('tasks').orderBy('createdAt', 'desc').get();
+    const { data: tasksSnap, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
 
     const tasks = await Promise.all(
-      tasksSnap.docs.map(async (doc) => {
-        const t = doc.data();
-
-        // Count submissions for this task
-        const submissionsSnap = await db
-          .collection('task_submissions')
-          .where('taskId', '==', doc.id)
-          .get();
+      (tasksSnap || []).map(async (t) => {
+        const { count } = await supabase
+          .from('task_submissions')
+          .select('*', { count: 'exact', head: true })
+          .eq('task_id', t.id);
 
         return {
-          id: doc.id,
+          id: t.id,
           title: t.title,
-          textContent: t.textContent,
+          textContent: t.text_content,
           language: t.language,
-          targetWpm: t.targetWpm,
-          targetAccuracy: t.targetAccuracy,
-          deadline: t.deadline?.toDate ? t.deadline.toDate() : new Date(t.deadline),
-          pointsAwardable: t.pointsAwardable,
-          createdAt: t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt),
+          targetWpm: t.target_wpm,
+          targetAccuracy: t.target_accuracy,
+          deadline: new Date(t.deadline),
+          pointsAwardable: t.points_awardable,
+          createdAt: new Date(t.created_at),
           batches: t.batches ?? [],
-          completionsCount: submissionsSnap.size,
+          completionsCount: count ?? 0,
         };
       })
     );
@@ -61,27 +63,28 @@ export async function POST(req: NextRequest) {
     }
 
     const taskId = crypto.randomUUID();
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const taskData = {
+      id: taskId,
       title: title.trim(),
-      textContent: textContent.trim(),
+      text_content: textContent.trim(),
       language: language.toUpperCase(),
-      targetWpm: parseFloat(targetWpm),
-      targetAccuracy: parseFloat(targetAccuracy),
-      deadline: new Date(deadline),
-      pointsAwardable: parseInt(pointsAwardable || 100),
-      creatorId: admin.id,
+      target_wpm: parseFloat(targetWpm),
+      target_accuracy: parseFloat(targetAccuracy),
+      deadline: new Date(deadline).toISOString(),
+      points_awardable: parseInt(pointsAwardable || 100),
       batches: batches.map((b: string) => b.trim()),
-      createdAt: now,
+      created_at: now,
     };
 
-    await db.collection('tasks').doc(taskId).set(taskData);
+    const { error: insertErr } = await supabase.from('tasks').insert(taskData);
+    if (insertErr) throw insertErr;
 
     return NextResponse.json(
       {
         message: 'Task created and assigned successfully',
-        task: { id: taskId, ...taskData },
+        task: taskData,
       },
       { status: 201 }
     );

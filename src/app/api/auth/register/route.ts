@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
@@ -17,13 +17,13 @@ export async function POST(req: Request) {
     const emailLower = email.toLowerCase().trim();
 
     // Check if email exists
-    const existing = await db
-      .collection('users')
-      .where('email', '==', emailLower)
-      .limit(1)
-      .get();
+    const { data: existing, error: existingErr } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', emailLower)
+      .limit(1);
 
-    if (!existing.empty) {
+    if (existing && existing.length > 0) {
       return NextResponse.json(
         { error: 'Email is already registered' },
         { status: 400 }
@@ -40,14 +40,14 @@ export async function POST(req: Request) {
       }
 
       // Verify Roll Number is not already registered in the same batch
-      const existingRoll = await db
-        .collection('users')
-        .where('batchName', '==', batchName.trim())
-        .where('rollNumber', '==', rollNumber.trim())
-        .limit(1)
-        .get();
+      const { data: existingRoll } = await supabase
+        .from('users')
+        .select('id')
+        .eq('batch_name', batchName.trim())
+        .eq('roll_number', rollNumber.trim())
+        .limit(1);
 
-      if (!existingRoll.empty) {
+      if (existingRoll && existingRoll.length > 0) {
         return NextResponse.json(
           { error: `Roll number ${rollNumber} is already registered in ${batchName}` },
           { status: 400 }
@@ -57,14 +57,15 @@ export async function POST(req: Request) {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const userId = crypto.randomUUID();
-    const now = new Date();
+    const now = new Date().toISOString();
 
     let userData: any = {
+      id: userId,
       name: name.trim(),
       email: emailLower,
-      passwordHash,
-      createdAt: now,
-      updatedAt: now,
+      password_hash: passwordHash,
+      created_at: now,
+      updated_at: now,
     };
 
     if (registrationType === 'STUDENT') {
@@ -72,11 +73,11 @@ export async function POST(req: Request) {
         ...userData,
         role: 'STUDENT',
         status: 'PENDING',
-        courseName: courseName.trim(),
-        batchName: batchName.trim(),
-        rollNumber: rollNumber.trim(),
+        course_name: courseName.trim(),
+        batch_name: batchName.trim(),
+        roll_number: rollNumber.trim(),
         points: 0,
-        lastPenaltyCheck: now,
+        last_penalty_check: now,
       };
     } else {
       userData = {
@@ -87,7 +88,8 @@ export async function POST(req: Request) {
       };
     }
 
-    await db.collection('users').doc(userId).set(userData);
+    const { error: insertErr } = await supabase.from('users').insert(userData);
+    if (insertErr) throw insertErr;
 
     return NextResponse.json(
       {

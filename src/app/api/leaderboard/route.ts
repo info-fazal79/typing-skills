@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
@@ -16,68 +16,59 @@ export async function GET(req: NextRequest) {
     // ── 1. Fetch metadata (courses → batches map) ────────────────────────────
     let coursesMap: Record<string, string[]> = {};
     try {
-      const metaSnap = await db.collection('metadata').doc('selectors').get();
-      if (metaSnap.exists) {
-        const d = metaSnap.data() as any;
-        if (d?.courses) coursesMap = d.courses;
-      }
+      const { data: meta } = await supabase
+        .from('metadata')
+        .select('courses_json')
+        .eq('id', 'selectors')
+        .single();
+      if (meta?.courses_json) coursesMap = meta.courses_json;
     } catch (e) {
       console.warn('Failed to fetch metadata', e);
     }
 
     // ── 2. General Leaderboard ─────────────────────────────────────────────
-    // Fetch ALL approved users (both STUDENT and USER), sort in-memory (avoids composite index)
-    const generalSnap = await db
-      .collection('users')
-      .where('status', '==', 'APPROVED')
-      .get();
+    const { data: generalSnap } = await supabase
+      .from('users')
+      .select('id, name, role, course_name, batch_name, points, best_wpm, avg_wpm')
+      .eq('status', 'APPROVED');
 
-    const general = generalSnap.docs
-      .map((doc) => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          name: d.name,
-          role: d.role ?? 'USER',
-          courseName: d.courseName ?? '',
-          batchName: d.batchName ?? '',
-          points: d.points ?? 0,
-          bestWpm: d.bestWpm ?? 0,
-          avgWpm: d.avgWpm ?? 0,
-        };
-      })
+    const general = (generalSnap || [])
+      .map((d) => ({
+        id: d.id,
+        name: d.name,
+        role: d.role ?? 'USER',
+        courseName: d.course_name ?? '',
+        batchName: d.batch_name ?? '',
+        points: d.points ?? 0,
+        bestWpm: d.best_wpm ?? 0,
+        avgWpm: d.avg_wpm ?? 0,
+      }))
       .sort((a, b) => b.points - a.points || b.bestWpm - a.bestWpm)
       .slice(0, 100);
 
     // ── 3. Batch Leaderboard ───────────────────────────────────────────────
-    // Fetch ALL approved students, filter + sort in-memory (avoids composite index)
-    const allStudentsSnap = await db
-      .collection('users')
-      .where('status', '==', 'APPROVED')
-      .where('role', '==', 'STUDENT')
-      .get();
+    const { data: allStudentsSnap } = await supabase
+      .from('users')
+      .select('id, name, course_name, batch_name, roll_number, points, best_wpm, avg_wpm')
+      .eq('status', 'APPROVED')
+      .eq('role', 'STUDENT');
 
-    const allStudents = allStudentsSnap.docs.map((doc) => {
-      const d = doc.data();
-      return {
-        id: doc.id,
-        name: d.name,
-        courseName: d.courseName ?? '',
-        batchName: d.batchName ?? '',
-        rollNumber: d.rollNumber ?? '',
-        points: d.points ?? 0,
-        bestWpm: d.bestWpm ?? 0,
-        avgWpm: d.avgWpm ?? 0,
-      };
-    });
+    const allStudents = (allStudentsSnap || []).map((d) => ({
+      id: d.id,
+      name: d.name,
+      courseName: d.course_name ?? '',
+      batchName: d.batch_name ?? '',
+      rollNumber: d.roll_number ?? '',
+      points: d.points ?? 0,
+      bestWpm: d.best_wpm ?? 0,
+      avgWpm: d.avg_wpm ?? 0,
+    }));
 
-    // Determine which batch to show
     const defaultBatch =
       filterBatch ||
-      (user.role === 'STUDENT' ? (user as any).batchName : '') ||
+      (user.role === 'STUDENT' ? user.batchName ?? '' : '') ||
       '';
 
-    // Filter by batch (and optional course)
     let filteredStudents = allStudents;
     if (defaultBatch) {
       filteredStudents = allStudents.filter((s) => s.batchName === defaultBatch);
@@ -97,7 +88,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Leaderboard error:', error);
-    // Return safe empty structure instead of crashing
     return NextResponse.json({
       general: [],
       batch: [],

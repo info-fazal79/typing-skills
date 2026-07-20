@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { signToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
@@ -18,24 +18,21 @@ export async function POST(req: Request) {
     const emailLower = email.toLowerCase().trim();
 
     // Find user by email
-    const usersSnap = await db
-      .collection('users')
-      .where('email', '==', emailLower)
-      .limit(1)
-      .get();
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', emailLower)
+      .single();
 
-    if (usersSnap.empty) {
+    if (error || !user) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    const userDoc = usersSnap.docs[0];
-    const user = { id: userDoc.id, ...userDoc.data() } as any;
-
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
@@ -71,9 +68,9 @@ export async function POST(req: Request) {
         email: user.email,
         role: user.role,
         status: user.status,
-        courseName: user.courseName,
-        batchName: user.batchName,
-        rollNumber: user.rollNumber,
+        courseName: user.course_name,
+        batchName: user.batch_name,
+        rollNumber: user.roll_number,
         points: user.points,
       },
     });

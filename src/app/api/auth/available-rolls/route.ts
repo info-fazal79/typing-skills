@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,30 +11,27 @@ export async function GET(req: NextRequest) {
     }
 
     // 1. Fetch metadata to get all allowed rolls for this batch
-    const docRef = db.collection('metadata').doc('selectors');
-    const doc = await docRef.get();
-    
+    const { data: meta } = await supabase
+      .from('metadata')
+      .select('roll_numbers_json')
+      .eq('id', 'selectors')
+      .single();
+
     let allRolls: string[] = [];
-    if (doc.exists) {
-      const data = doc.data() as any;
-      if (data.rollNumbersByBatch && data.rollNumbersByBatch[batchName]) {
-        allRolls = data.rollNumbersByBatch[batchName];
-      }
+    if (meta?.roll_numbers_json?.[batchName]) {
+      allRolls = meta.roll_numbers_json[batchName];
     }
 
-    // 2. Query users collection to find claimed rolls for this batch
-    const usersSnap = await db
-      .collection('users')
-      .where('role', '==', 'STUDENT')
-      .where('batchName', '==', batchName)
-      .get();
-      
+    // 2. Query users to find claimed rolls for this batch
+    const { data: usersSnap } = await supabase
+      .from('users')
+      .select('roll_number')
+      .eq('role', 'STUDENT')
+      .eq('batch_name', batchName);
+
     const claimedRolls = new Set<string>();
-    usersSnap.docs.forEach(uDoc => {
-      const uData = uDoc.data();
-      if (uData.rollNumber) {
-        claimedRolls.add(uData.rollNumber);
-      }
+    (usersSnap || []).forEach(u => {
+      if (u.roll_number) claimedRolls.add(u.roll_number);
     });
 
     // 3. Filter out claimed rolls

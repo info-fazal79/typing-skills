@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
@@ -10,59 +10,54 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch all students
-    const studentsSnap = await db
-      .collection('users')
-      .where('role', '==', 'STUDENT')
-      .get();
+    const { data: students, error: studentsErr } = await supabase
+      .from('users')
+      .select('*')
+      .eq('role', 'STUDENT');
+
+    if (studentsErr) throw studentsErr;
 
     const reportData = await Promise.all(
-      studentsSnap.docs.map(async (doc) => {
-        const student = doc.data();
-
+      (students || []).map(async (student) => {
         // Fetch all practice sessions for this student
-        const sessionsSnap = await db
-          .collection('practice_sessions')
-          .where('userId', '==', doc.id)
-          .get();
+        const { data: sessions } = await supabase
+          .from('practice_sessions')
+          .select('duration, wpm, accuracy')
+          .eq('user_id', student.id);
 
-        const sessions = sessionsSnap.docs.map((s) => s.data());
-        const sessionCount = sessions.length;
-        const totalDurationSeconds = sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0);
+        const sessionCount = (sessions || []).length;
+        const totalDurationSeconds = (sessions || []).reduce((sum, s) => sum + (s.duration ?? 0), 0);
         const totalPracticeMinutes = Math.round(totalDurationSeconds / 60);
         const avgWpm =
           sessionCount > 0
-            ? Math.round((sessions.reduce((sum, s) => sum + s.wpm, 0) / sessionCount) * 10) / 10
+            ? Math.round(((sessions || []).reduce((sum, s) => sum + s.wpm, 0) / sessionCount) * 10) / 10
             : 0;
         const avgAccuracy =
           sessionCount > 0
-            ? Math.round((sessions.reduce((sum, s) => sum + s.accuracy, 0) / sessionCount) * 10) / 10
+            ? Math.round(((sessions || []).reduce((sum, s) => sum + s.accuracy, 0) / sessionCount) * 10) / 10
             : 0;
 
         // Count task submissions
-        const submissionsSnap = await db
-          .collection('task_submissions')
-          .where('studentId', '==', doc.id)
-          .get();
-
-        const createdAt = student.createdAt?.toDate
-          ? student.createdAt.toDate()
-          : new Date(student.createdAt);
+        const { count: taskCompletions } = await supabase
+          .from('task_submissions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', student.id);
 
         return {
-          id: doc.id,
+          id: student.id,
           name: student.name,
           email: student.email,
-          course: student.courseName || 'N/A',
-          batch: student.batchName || 'N/A',
-          rollNumber: student.rollNumber || 'N/A',
+          course: student.course_name || 'N/A',
+          batch: student.batch_name || 'N/A',
+          rollNumber: student.roll_number || 'N/A',
           status: student.status,
           points: student.points ?? 0,
           totalSessions: sessionCount,
           averageWpm: avgWpm,
           averageAccuracy: avgAccuracy,
           totalMinutesPracticed: totalPracticeMinutes,
-          taskCompletions: submissionsSnap.size,
-          joinDate: createdAt.toLocaleDateString(),
+          taskCompletions: taskCompletions ?? 0,
+          joinDate: new Date(student.created_at).toLocaleDateString(),
         };
       })
     );

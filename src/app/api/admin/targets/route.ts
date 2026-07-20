@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 
 // GET: Fetch all batch targets
@@ -10,14 +10,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const snap = await db.collection('batch_targets').orderBy('batchName', 'asc').get();
+    const { data: targets, error } = await supabase
+      .from('batch_targets')
+      .select('*')
+      .order('batch_name', { ascending: true });
 
-    const targets = snap.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    if (error) throw error;
 
-    return NextResponse.json({ targets });
+    return NextResponse.json({ targets: targets || [] });
   } catch (error: any) {
     console.error('Fetch targets error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -43,18 +43,14 @@ export async function POST(req: NextRequest) {
     }
 
     const trimmedBatch = batchName.trim();
-    const now = new Date();
 
-    // Firestore set with merge = upsert
-    await db.collection('batch_targets').doc(trimmedBatch).set(
-      {
-        batchName: trimmedBatch,
-        dailyTargetMinutes: parseInt(dailyTargetMinutes),
-        pointsDeduction: parseInt(pointsDeduction),
-        updatedAt: now,
-      },
-      { merge: true }
-    );
+    const { error: upsertErr } = await supabase.from('batch_targets').upsert({
+      batch_name: trimmedBatch,
+      daily_target_minutes: parseInt(dailyTargetMinutes),
+      points_deduction: parseInt(pointsDeduction),
+    });
+
+    if (upsertErr) throw upsertErr;
 
     return NextResponse.json({
       message: 'Batch target configuration updated successfully',
