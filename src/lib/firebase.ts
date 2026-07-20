@@ -8,20 +8,45 @@ function getApp(): App {
   if (!_app) {
     // Dynamic imports to avoid module-level initialization during build
     const { initializeApp, getApps, cert } = require('firebase-admin/app');
+    const fs = require('fs');
+    const path = require('path');
 
     if (!getApps().length) {
-      const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
-      if (!serviceAccount) {
-        throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
+      let parsedServiceAccount: any = null;
+
+      // 1. Try to load from local file first (for cPanel / local dev)
+      try {
+        const keyPath = path.join(process.cwd(), 'firebase-key.json');
+        if (fs.existsSync(keyPath)) {
+          const fileContent = fs.readFileSync(keyPath, 'utf8');
+          parsedServiceAccount = JSON.parse(fileContent);
+          console.log('Firebase initialized using local firebase-key.json');
+        }
+      } catch (err) {
+        console.warn('Could not read firebase-key.json, falling back to ENV...', err);
       }
-      const parsed = JSON.parse(serviceAccount);
-      if (parsed.private_key) {
+
+      // 2. Fallback to Environment Variable (for Vercel)
+      if (!parsedServiceAccount) {
+        const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
+        if (!serviceAccountEnv) {
+          throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set and firebase-key.json is missing.');
+        }
+        try {
+          parsedServiceAccount = JSON.parse(serviceAccountEnv);
+          console.log('Firebase initialized using FIREBASE_SERVICE_ACCOUNT env var');
+        } catch (err) {
+          throw new Error('Failed to parse FIREBASE_SERVICE_ACCOUNT env var as JSON. Check your environment variables.');
+        }
+      }
+
+      if (parsedServiceAccount.private_key) {
         // Vercel sometimes escapes newlines in env variables
-        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+        parsedServiceAccount.private_key = parsedServiceAccount.private_key.replace(/\\n/g, '\n');
       }
 
       _app = initializeApp({
-        credential: cert(parsed),
+        credential: cert(parsedServiceAccount),
       });
     } else {
       _app = getApps()[0];
