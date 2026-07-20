@@ -62,9 +62,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // Authorize Student pages
-  if (isStudentPage && payload.role !== 'STUDENT') {
-    return NextResponse.redirect(new URL('/admin', request.url));
+  // Authorize Student/User pages — both STUDENT and USER roles are allowed
+  if (isStudentPage && payload.role !== 'STUDENT' && payload.role !== 'USER') {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return NextResponse.next();
