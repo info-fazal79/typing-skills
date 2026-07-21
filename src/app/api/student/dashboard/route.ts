@@ -117,16 +117,58 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── All practice sessions for this user ─────────────────────────────
-    let allSessions: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[] = [];
+    // ── Practice session analytics ────────────────────────────────────────
+    // Previously this fetched the user's ENTIRE session history with
+    // select('*') just to derive a handful of numbers and the last 15 rows —
+    // O(n) time/space/network per dashboard load, unbounded as history grows.
+    // Now: one narrow-column pass over full history for lifetime aggregates,
+    // one LIMITed query for the recent-sessions table, and one query scoped
+    // to the last 7 days for the daily-practice chart — no more full-table
+    // scans for data that only ever needed a bounded slice.
+    let totalTests = 0;
+    let bestWpm = 0;
+    let avgWpm = 0;
+    let avgAccuracy = 0;
+    let totalMinutes = 0;
     try {
-      const { data: sessionsSnap } = await supabase
+      const { data: lifetimeRows } = await supabase
+        .from('practice_sessions')
+        .select('wpm, accuracy, duration')
+        .eq('user_id', user.id);
+
+      const rows = lifetimeRows || [];
+      totalTests = rows.length;
+      if (totalTests > 0) {
+        let wpmSum = 0;
+        let accuracySum = 0;
+        let durationSum = 0;
+        let maxWpm = 0;
+        for (const r of rows) {
+          const wpm = r.wpm ?? 0;
+          wpmSum += wpm;
+          accuracySum += r.accuracy ?? 0;
+          durationSum += r.duration ?? 0;
+          if (wpm > maxWpm) maxWpm = wpm;
+        }
+        bestWpm = maxWpm;
+        avgWpm = Math.round(wpmSum / totalTests);
+        avgAccuracy = Math.round(accuracySum / totalTests);
+        totalMinutes = Math.round(durationSum / 60);
+      }
+    } catch (e) {
+      console.warn('Lifetime session stats fetch failed (non-fatal):', e);
+    }
+
+    let recentSessions: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[] = [];
+    try {
+      const { data: recentRows } = await supabase
         .from('practice_sessions')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(15);
 
-      allSessions = (sessionsSnap || []).map((s) => ({
+      recentSessions = (recentRows || []).map((s) => ({
         id: s.id,
         wpm: s.wpm ?? 0,
         accuracy: s.accuracy ?? 0,
@@ -134,27 +176,11 @@ export async function GET(req: NextRequest) {
         language: s.language ?? 'English',
         mode: s.mode ?? 'Standard',
         createdAtISO: s.created_at,
-        createdAt: s.created_at,
       }));
     } catch (e) {
-      console.warn('All sessions fetch failed (non-fatal):', e);
+      console.warn('Recent sessions fetch failed (non-fatal):', e);
     }
 
-    // ── Derived analytics ─────────────────────────────────────────────────
-    const totalTests = allSessions.length;
-    const bestWpm = totalTests > 0 ? Math.max(...allSessions.map((s) => s.wpm)) : 0;
-    const avgWpm =
-      totalTests > 0
-        ? Math.round(allSessions.reduce((sum, s) => sum + s.wpm, 0) / totalTests)
-        : 0;
-    const avgAccuracy =
-      totalTests > 0
-        ? Math.round(allSessions.reduce((sum, s) => sum + s.accuracy, 0) / totalTests)
-        : 0;
-
-    const recentSessions = allSessions.slice(0, 15);
-    const totalDurationSeconds = allSessions.reduce((sum, s) => sum + (s.duration ?? 0), 0);
-    const totalMinutes = Math.round(totalDurationSeconds / 60);
     const sessionHistory = [...recentSessions].reverse().map((s) => ({
       id: s.id,
       wpm: s.wpm,
@@ -163,17 +189,34 @@ export async function GET(req: NextRequest) {
     }));
 
     const dailyPracticeHistory: { dayName: string; minutes: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      const daySeconds = allSessions
-        .filter((s) => s.createdAt && s.createdAt.split('T')[0] === dateStr)
-        .reduce((sum, s) => sum + s.duration, 0);
-      dailyPracticeHistory.push({
-        dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
-        minutes: Math.round(daySeconds / 60),
-      });
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6);
+      sevenDaysAgo.setUTCHours(0, 0, 0, 0);
+
+      const { data: weekRows } = await supabase
+        .from('practice_sessions')
+        .select('duration, created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', sevenDaysAgo.toISOString());
+
+      const secondsByDate = new Map<string, number>();
+      for (const r of weekRows || []) {
+        const dateStr = (r.created_at as string).split('T')[0];
+        secondsByDate.set(dateStr, (secondsByDate.get(dateStr) ?? 0) + (r.duration ?? 0));
+      }
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        dailyPracticeHistory.push({
+          dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
+          minutes: Math.round((secondsByDate.get(dateStr) ?? 0) / 60),
+        });
+      }
+    } catch (e) {
+      console.warn('Daily practice history fetch failed (non-fatal):', e);
     }
 
     let performanceTrend: 'improving' | 'stable' | 'declining' | 'new' = 'new';
