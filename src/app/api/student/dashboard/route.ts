@@ -153,6 +153,8 @@ export async function GET(req: NextRequest) {
         : 0;
 
     const recentSessions = allSessions.slice(0, 15);
+    const totalDurationSeconds = allSessions.reduce((sum, s) => sum + (s.duration ?? 0), 0);
+    const totalMinutes = Math.round(totalDurationSeconds / 60);
     const sessionHistory = [...recentSessions].reverse().map((s) => ({
       id: s.id,
       wpm: s.wpm,
@@ -207,6 +209,7 @@ export async function GET(req: NextRequest) {
         bestWpm,
         avgWpm,
         avgAccuracy,
+        totalMinutes,
         sessions: sessionHistory,
         dailyPractice: dailyPracticeHistory,
         recentSessions,

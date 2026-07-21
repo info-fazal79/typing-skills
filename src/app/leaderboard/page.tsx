@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { Trophy, Award, Users, Crown, ChevronDown } from 'lucide-react';
 
@@ -241,7 +242,14 @@ export default function LeaderboardPage() {
                       className={`hover:bg-neutral-900/30 transition-colors ${idx < 3 ? 'bg-amber-500/[0.02]' : ''}`}
                     >
                       <td className="py-4 px-5 text-center">{renderRankBadge(idx + 1)}</td>
-                      <td className="py-4 px-5 font-bold text-neutral-200">{entry.name}</td>
+                      <td className="py-4 px-5 font-bold text-neutral-200">
+                        <Link
+                          href={`/profile/${entry.id}`}
+                          className="hover:text-amber-400 transition-colors hover:underline underline-offset-2"
+                        >
+                          {entry.name}
+                        </Link>
+                      </td>
                       {activeTab === 'batch' ? (
                         <>
                           <td className="py-4 px-5 text-neutral-400">{entry.courseName || '—'}</td>

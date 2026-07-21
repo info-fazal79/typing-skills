@@ -260,12 +260,18 @@ export default function DashboardPage() {
         </section>
 
         {/* ── Stat Cards ── */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {[
             { label: 'Tests Taken', value: analytics.totalTests, icon: <Hash size={18} />, suffix: '' },
             { label: 'Best WPM', value: analytics.bestWpm, icon: <Zap size={18} />, suffix: ' wpm' },
             { label: 'Average WPM', value: analytics.avgWpm, icon: <TrendingUp size={18} />, suffix: ' wpm' },
             { label: 'Avg Accuracy', value: analytics.avgAccuracy, icon: <Target size={18} />, suffix: '%' },
+            {
+              label: 'Practice Time',
+              value: analytics.totalMinutes ?? 0,
+              icon: <Clock size={18} />,
+              suffix: ' min',
+            },
           ].map(({ label, value, icon, suffix }) => (
             <div key={label} className="p-5 rounded-2xl border border-neutral-800 bg-[#1d1e22]/20 flex flex-col gap-3">
               <div className="flex items-center justify-between">
