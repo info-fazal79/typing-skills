@@ -17,28 +17,31 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error;
 
-    const tasks = await Promise.all(
-      (tasksSnap || []).map(async (t) => {
-        const { count } = await supabase
-          .from('task_submissions')
-          .select('*', { count: 'exact', head: true })
-          .eq('task_id', t.id);
+    const taskIds = (tasksSnap || []).map((t) => t.id);
 
-        return {
-          id: t.id,
-          title: t.title,
-          textContent: t.text_content,
-          language: t.language,
-          targetWpm: t.target_wpm,
-          targetAccuracy: t.target_accuracy,
-          deadline: new Date(t.deadline),
-          pointsAwardable: t.points_awardable,
-          createdAt: new Date(t.created_at),
-          batches: t.batches ?? [],
-          completionsCount: count ?? 0,
-        };
-      })
-    );
+    // One batched query instead of one COUNT query per task (was n+1 round trips).
+    const { data: allSubmissions } = taskIds.length > 0
+      ? await supabase.from('task_submissions').select('task_id').in('task_id', taskIds)
+      : { data: [] as { task_id: string }[] };
+
+    const completionsByTask = new Map<string, number>();
+    for (const sub of allSubmissions || []) {
+      completionsByTask.set(sub.task_id, (completionsByTask.get(sub.task_id) ?? 0) + 1);
+    }
+
+    const tasks = (tasksSnap || []).map((t) => ({
+      id: t.id,
+      title: t.title,
+      textContent: t.text_content,
+      language: t.language,
+      targetWpm: t.target_wpm,
+      targetAccuracy: t.target_accuracy,
+      deadline: new Date(t.deadline),
+      pointsAwardable: t.points_awardable,
+      createdAt: new Date(t.created_at),
+      batches: t.batches ?? [],
+      completionsCount: completionsByTask.get(t.id) ?? 0,
+    }));
 
     return NextResponse.json({ tasks });
   } catch (error) {
