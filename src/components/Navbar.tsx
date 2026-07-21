@@ -45,7 +45,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout');
+      await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');
       router.refresh();
     } catch (e) {

@@ -5,6 +5,24 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
+// Runs each collection migration independently and reports a source-count vs
+// migrated-count summary at the end, so a failure in one collection can never
+// silently skip the others or be mistaken for a clean run. Exits with a
+// non-zero status if anything failed, so it's safe to script/CI this.
+async function migrateCollection(name, run) {
+  try {
+    const { sourceCount, migratedCount } = await run();
+    const ok = migratedCount === sourceCount;
+    console.log(
+      `${ok ? '✓' : '⚠'} ${name}: ${migratedCount}/${sourceCount} migrated${ok ? '' : ' — COUNT MISMATCH, check manually'}`
+    );
+    return { name, ok: true, sourceCount, migratedCount };
+  } catch (error) {
+    console.error(`✗ ${name}: FAILED —`, error.message || error);
+    return { name, ok: false, error };
+  }
+}
+
 async function migrate() {
   console.log('Starting migration...');
 
@@ -35,19 +53,18 @@ async function migrate() {
 
   console.log('Connected to Firebase and Supabase.');
 
-  try {
-    // ---------------------------------------------------------
-    // Migrate Users
-    // ---------------------------------------------------------
-    console.log('Fetching users from Firestore...');
+  const results = [];
+
+  // ---------------------------------------------------------
+  // Migrate Users
+  // ---------------------------------------------------------
+  results.push(await migrateCollection('users', async () => {
     const usersSnap = await db.collection('users').get();
+    // Firestore doc IDs are 20-char strings, not UUIDs — the Supabase `users.id`
+    // column must be TEXT (not uuid) for this direct ID carry-over to work.
     const users = usersSnap.docs.map(doc => {
       const data = doc.data();
       return {
-        // use generated UUID if we can't map string IDs, but we can store string IDs in UUID if they are valid.
-        // Wait, Firestore IDs are 20 char strings. Supabase id is UUID.
-        // We MUST map the old ID to the new UUID, or change Supabase schema to use TEXT for id!
-        // To keep relations simple, let's keep the existing ID by using TEXT for the Supabase id column.
         id: doc.id,
         name: data.name || '',
         email: (data.email || '').toLowerCase(),
@@ -68,15 +85,15 @@ async function migrate() {
       };
     });
 
-    console.log(`Inserting ${users.length} users into Supabase...`);
-    const { error: userErr } = await supabase.from('users').upsert(users);
-    if (userErr) throw userErr;
-    console.log('Users migrated successfully.');
+    const { error } = await supabase.from('users').upsert(users);
+    if (error) throw error;
+    return { sourceCount: users.length, migratedCount: users.length };
+  }));
 
-    // ---------------------------------------------------------
-    // Migrate Practice Sessions
-    // ---------------------------------------------------------
-    console.log('Fetching practice sessions from Firestore...');
+  // ---------------------------------------------------------
+  // Migrate Practice Sessions
+  // ---------------------------------------------------------
+  results.push(await migrateCollection('practice_sessions', async () => {
     const sessionsSnap = await db.collection('practice_sessions').get();
     const sessions = sessionsSnap.docs.map(doc => {
       const data = doc.data();
@@ -93,92 +110,120 @@ async function migrate() {
       };
     });
 
-    console.log(`Inserting ${sessions.length} practice sessions...`);
-    // Insert in batches of 1000
     for (let i = 0; i < sessions.length; i += 1000) {
       const chunk = sessions.slice(i, i + 1000);
-      const { error: sessionErr } = await supabase.from('practice_sessions').upsert(chunk);
-      if (sessionErr) throw sessionErr;
+      const { error } = await supabase.from('practice_sessions').upsert(chunk);
+      if (error) throw error;
     }
-    console.log('Practice sessions migrated successfully.');
+    return { sourceCount: sessions.length, migratedCount: sessions.length };
+  }));
 
-    // ---------------------------------------------------------
-    // Migrate Metadata & Targets
-    // ---------------------------------------------------------
-    console.log('Migrating metadata...');
+  // ---------------------------------------------------------
+  // Migrate Metadata
+  // ---------------------------------------------------------
+  results.push(await migrateCollection('metadata', async () => {
     const metaSnap = await db.collection('metadata').doc('selectors').get();
-    if (metaSnap.exists) {
-      const d = metaSnap.data();
-      const { error: metaErr } = await supabase.from('metadata').upsert({
-        id: 'selectors',
-        courses_json: d.courses || {},
-        roll_numbers_json: d.rollNumbersByBatch || {}
-      });
-      if (metaErr) throw metaErr;
-    }
+    if (!metaSnap.exists) return { sourceCount: 0, migratedCount: 0 };
 
+    const d = metaSnap.data();
+    const { error } = await supabase.from('metadata').upsert({
+      id: 'selectors',
+      courses_json: d.courses || {},
+      roll_numbers_json: d.rollNumbersByBatch || {}
+    });
+    if (error) throw error;
+    return { sourceCount: 1, migratedCount: 1 };
+  }));
+
+  // ---------------------------------------------------------
+  // Migrate Batch Targets
+  // ---------------------------------------------------------
+  results.push(await migrateCollection('batch_targets', async () => {
     const targetsSnap = await db.collection('batch_targets').get();
-    if (!targetsSnap.empty) {
-      const targets = targetsSnap.docs.map(doc => ({
-        batch_name: doc.id,
-        daily_target_minutes: doc.data().dailyTargetMinutes || 5,
-        points_deduction: doc.data().pointsDeduction || 10
-      }));
-      const { error: targetErr } = await supabase.from('batch_targets').upsert(targets);
-      if (targetErr) throw targetErr;
-    }
+    if (targetsSnap.empty) return { sourceCount: 0, migratedCount: 0 };
 
-    // ---------------------------------------------------------
-    // Migrate Tasks
-    // ---------------------------------------------------------
-    console.log('Migrating tasks...');
+    const targets = targetsSnap.docs.map(doc => ({
+      batch_name: doc.id,
+      daily_target_minutes: doc.data().dailyTargetMinutes || 5,
+      points_deduction: doc.data().pointsDeduction || 10
+    }));
+    const { error } = await supabase.from('batch_targets').upsert(targets);
+    if (error) throw error;
+    return { sourceCount: targets.length, migratedCount: targets.length };
+  }));
+
+  // ---------------------------------------------------------
+  // Migrate Tasks
+  // ---------------------------------------------------------
+  results.push(await migrateCollection('tasks', async () => {
     const tasksSnap = await db.collection('tasks').get();
-    if (!tasksSnap.empty) {
-      const tasks = tasksSnap.docs.map(doc => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          title: d.title,
-          text_content: d.textContent,
-          language: d.language,
-          target_wpm: d.targetWpm,
-          target_accuracy: d.targetAccuracy,
-          deadline: d.deadline ? new Date(d.deadline).toISOString() : new Date().toISOString(),
-          points_awardable: d.pointsAwardable,
-          batches: d.batches || [],
-          completions_count: d.completionsCount || 0,
-          created_at: d.createdAt ? d.createdAt.toDate().toISOString() : new Date().toISOString()
-        };
-      });
-      const { error: taskErr } = await supabase.from('tasks').upsert(tasks);
-      if (taskErr) throw taskErr;
-    }
+    if (tasksSnap.empty) return { sourceCount: 0, migratedCount: 0 };
 
-    // ---------------------------------------------------------
-    // Migrate Task Submissions
-    // ---------------------------------------------------------
+    const tasks = tasksSnap.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        title: d.title,
+        text_content: d.textContent,
+        language: d.language,
+        target_wpm: d.targetWpm,
+        target_accuracy: d.targetAccuracy,
+        deadline: d.deadline ? new Date(d.deadline).toISOString() : new Date().toISOString(),
+        points_awardable: d.pointsAwardable,
+        batches: d.batches || [],
+        completions_count: d.completionsCount || 0,
+        created_at: d.createdAt ? d.createdAt.toDate().toISOString() : new Date().toISOString()
+      };
+    });
+    const { error } = await supabase.from('tasks').upsert(tasks);
+    if (error) throw error;
+    return { sourceCount: tasks.length, migratedCount: tasks.length };
+  }));
+
+  // ---------------------------------------------------------
+  // Migrate Task Submissions
+  // ---------------------------------------------------------
+  results.push(await migrateCollection('task_submissions', async () => {
     const subsSnap = await db.collection('task_submissions').get();
-    if (!subsSnap.empty) {
-      const subs = subsSnap.docs.map(doc => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          task_id: d.taskId,
-          user_id: d.userId,
-          wpm: d.wpm,
-          accuracy: d.accuracy,
-          created_at: d.createdAt ? d.createdAt.toDate().toISOString() : new Date().toISOString()
-        };
-      });
-      const { error: subErr } = await supabase.from('task_submissions').upsert(subs);
-      if (subErr) throw subErr;
-    }
+    if (subsSnap.empty) return { sourceCount: 0, migratedCount: 0 };
 
-    console.log('Migration completed successfully!');
+    const subs = subsSnap.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        task_id: d.taskId,
+        user_id: d.userId,
+        wpm: d.wpm,
+        accuracy: d.accuracy,
+        // These two were previously dropped during migration — they exist on
+        // both the Firestore documents and the Supabase table (see
+        // src/app/api/tasks/submit/route.ts), so omitting them silently lost
+        // every already-migrated submission's points/lateness status.
+        points_earned: d.pointsEarned || 0,
+        is_late: d.isLate || false,
+        created_at: d.createdAt ? d.createdAt.toDate().toISOString() : new Date().toISOString()
+      };
+    });
+    const { error } = await supabase.from('task_submissions').upsert(subs);
+    if (error) throw error;
+    return { sourceCount: subs.length, migratedCount: subs.length };
+  }));
 
-  } catch (error) {
-    console.error('Migration failed:', error);
+  console.log('\n--- Migration summary ---');
+  const failed = results.filter(r => !r.ok);
+  for (const r of results) {
+    console.log(r.ok ? `  ${r.name}: OK (${r.migratedCount}/${r.sourceCount})` : `  ${r.name}: FAILED`);
+  }
+
+  if (failed.length > 0) {
+    console.error(`\n${failed.length} collection(s) failed to migrate. Fix the errors above and re-run — upserts are idempotent, so already-migrated collections are safe to repeat.`);
+    process.exitCode = 1;
+  } else {
+    console.log('\nMigration completed successfully!');
   }
 }
 
-migrate();
+migrate().catch(error => {
+  console.error('Migration script crashed before completing:', error);
+  process.exitCode = 1;
+});

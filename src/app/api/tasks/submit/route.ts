@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 import { applyInactivityPenalties } from '@/lib/penalties';
+import { isValidSessionStats } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,6 +25,10 @@ export async function POST(req: NextRequest) {
 
     if (!taskId || wpm === undefined || accuracy === undefined) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+    }
+
+    if (!isValidSessionStats(wpm, accuracy)) {
+      return NextResponse.json({ error: 'Invalid session stats' }, { status: 400 });
     }
 
     // Fetch the task

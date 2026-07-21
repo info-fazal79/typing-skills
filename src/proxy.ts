@@ -20,7 +20,12 @@ function decodeJwtPayload(token: string) {
   }
 }
 
-export function middleware(request: NextRequest) {
+// Note: this only decodes the JWT payload, it does not verify the signature —
+// it exists purely to redirect unauthenticated/wrong-role page loads to the
+// right place before render. Every API route independently verifies the
+// signature via getUserFromRequest()/verifyToken() in src/lib/auth.ts, which
+// is the actual authorization boundary.
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const token = request.cookies.get('token')?.value;
 

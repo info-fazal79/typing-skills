@@ -1,13 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles, ArrowRight, User, Mail, Lock, BookOpen, Layers, Hash, CheckCircle2, BadgeCheck } from 'lucide-react';
 
 export default function RegisterPage() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'STUDENT' | 'GENERAL'>('STUDENT');
   
   const [name, setName] = useState('');
@@ -210,6 +207,7 @@ export default function RegisterPage() {
               <input
                 type="text"
                 required
+                autoComplete="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
@@ -225,6 +223,7 @@ export default function RegisterPage() {
               <input
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="john.doe@example.com"
@@ -240,12 +239,15 @@ export default function RegisterPage() {
               <input
                 type="password"
                 required
+                minLength={8}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Choose a secure password"
                 className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#111215] border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm"
               />
             </div>
+            <span className="text-neutral-600 text-[11px]">At least 8 characters</span>
           </div>
 
           {activeTab === 'STUDENT' && (

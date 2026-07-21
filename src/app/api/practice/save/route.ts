@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 import { applyInactivityPenalties } from '@/lib/penalties';
+import { isValidSessionStats } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,6 +26,10 @@ export async function POST(req: NextRequest) {
 
     if (wpm === undefined || accuracy === undefined || duration === undefined || !language || !mode) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+    }
+
+    if (!isValidSessionStats(wpm, accuracy, duration)) {
+      return NextResponse.json({ error: 'Invalid session stats' }, { status: 400 });
     }
 
     // Calculate points: WPM * (Accuracy/100) * (Duration/30), capped at 80
