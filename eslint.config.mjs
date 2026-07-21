@@ -16,9 +16,6 @@ const eslintConfig = defineConfig([
     "*.js",
     "scripts/**",
     "server.js",
-    "fix-lint.js",
-    "fix-lint2.js",
-    "check-imports.js",
   ]),
 ]);
 

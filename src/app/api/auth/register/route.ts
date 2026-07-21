@@ -1,15 +1,36 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { checkRateLimit } from '@/lib/rateLimit';
 import bcrypt from 'bcryptjs';
 
-export async function POST(req: Request) {
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function POST(req: NextRequest) {
   try {
+    if (!checkRateLimit(req, 'register', 10, 15 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again in a few minutes.' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { name, email, password, registrationType, courseName, batchName, rollNumber } = body;
 
     if (!name || !email || !password || !registrationType) {
       return NextResponse.json(
         { error: 'Name, email, password, and registration type are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!EMAIL_RE.test(email)) {
+      return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 });
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters long' },
         { status: 400 }
       );
     }

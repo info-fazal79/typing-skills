@@ -2,7 +2,15 @@ import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { supabase } from './supabase';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'typing_institute_secret_key_987654321';
+const JWT_SECRET: string = (() => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'Missing JWT_SECRET environment variable. Set it to a long, random value (e.g. `openssl rand -base64 48`).'
+    );
+  }
+  return secret;
+})();
 
 export interface TokenPayload {
   userId: string;

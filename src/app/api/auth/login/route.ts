@@ -1,10 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { signToken } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
 import bcrypt from 'bcryptjs';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    if (!checkRateLimit(req, 'login', 10, 15 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again in a few minutes.' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { email, password } = body;
 

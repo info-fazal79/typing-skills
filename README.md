@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Typing Skills
 
-## Getting Started
+A typing-practice and speed-test web app for institute students, with admin-managed
+tasks, batches, targets, and a leaderboard. Built with Next.js (App Router) and
+Supabase (Postgres), with custom JWT-based session auth.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Framework:** Next.js 16 (App Router, Turbopack), served via a custom
+  `server.js` (Phusion Passenger / cPanel deployment target — see
+  `.github/workflows/cpanel-deploy.yml`)
+- **Database:** Supabase (Postgres), accessed server-side with the service
+  role key (RLS is bypassed intentionally — the app enforces authorization
+  itself via its own JWT sessions, see `src/lib/auth.ts`)
+- **Auth:** Custom email/password auth with bcrypt password hashing and
+  signed JWTs stored in an `httpOnly` cookie (not Supabase Auth)
+- **UI:** React 19, Tailwind CSS 4
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Getting started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Copy `.env.example` to `.env` and fill in:
+   - `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — from your
+     Supabase project's API settings
+   - `JWT_SECRET` — a long random value (`openssl rand -base64 48`). The app
+     will refuse to start without this set.
+2. Install dependencies and run the dev server:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-## Learn More
+3. Open [http://localhost:3000](http://localhost:3000).
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start the Next.js dev server |
+| `npm run build` | Production build |
+| `npm run start` | Run the production build (`server.js`) |
+| `npm run lint` | ESLint |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`scripts/migrate-to-supabase.js` is a one-off, idempotent script used for the
+original Firebase → Supabase data migration (see `dependencies` note below).
+It requires a Firebase service account (`firebase-key.json` or
+`FIREBASE_SERVICE_ACCOUNT` env var) plus the Supabase env vars above, and can
+be safely re-run — every collection is migrated with `upsert`.
 
-## Deploy on Vercel
+## Notes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `firebase-admin` and `dotenv` are devDependencies, not runtime dependencies —
+  they're only used by the migration script above, not by the deployed app.
+- Session authorization is enforced independently in every API route via
+  `getUserFromRequest()` (`src/lib/auth.ts`), which verifies the JWT
+  signature. `src/proxy.ts` only decodes the token (no signature check) to
+  redirect page loads to the right place before render — it is not a
+  security boundary on its own.
