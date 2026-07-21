@@ -35,6 +35,7 @@ export default function AdminPage() {
   const [filterBatch, setFilterBatch] = useState('');
   const [filterRoll, setFilterRoll] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterRole, setFilterRole] = useState('');
 
   // Form States - Task Creation
   const [taskTitle, setTaskTitle] = useState('');
@@ -61,6 +62,7 @@ export default function AdminPage() {
       if (filterBatch) query.append('batch', filterBatch);
       if (filterRoll) query.append('roll', filterRoll);
       if (filterStatus) query.append('status', filterStatus);
+      if (filterRole) query.append('role', filterRole);
 
       const studentsRes = await fetch(`/api/admin/students?${query.toString()}`);
       const studentsData = await studentsRes.json();
@@ -90,7 +92,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterCourse, filterBatch, filterRoll, filterStatus, showError]);
+  }, [filterCourse, filterBatch, filterRoll, filterStatus, filterRole, showError]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -116,6 +118,31 @@ export default function AdminPage() {
     } catch {
       showError('Failed to update student state.');
     }
+  };
+
+  // Permanently delete a user account (any status — not just pending)
+  const handleDeleteUser = (userId: string, name: string) => {
+    setConfirmDialog({
+      message: `Permanently delete ${name}'s account? This removes their profile and all practice history and cannot be undone.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          const res = await fetch(`/api/admin/students?userId=${encodeURIComponent(userId)}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showSuccess(data.message);
+            loadAdminData();
+          } else {
+            showError(data.error);
+          }
+        } catch {
+          showError('Failed to delete user.');
+        }
+      },
+    });
   };
 
   // Bulk Update Status
@@ -351,7 +378,7 @@ export default function AdminPage() {
         <section className="flex flex-wrap gap-1 border-b border-neutral-900 pb-1">
           {[
             { id: 'approvals', label: 'Pending Approvals', count: students.filter(s => s.status === 'PENDING').length },
-            { id: 'directory', label: 'Student Directory', count: students.length },
+            { id: 'directory', label: 'User Directory', count: students.length },
             { id: 'tasks', label: 'Task Assignments', count: tasks.length },
             { id: 'targets', label: 'Inactivity targets', count: targets.length },
             { id: 'metadata', label: 'Registration Options', count: 0 },
@@ -543,35 +570,63 @@ export default function AdminPage() {
                       <option value="REJECTED">Rejected</option>
                     </select>
                   </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Account Type</label>
+                    <select
+                      value={filterRole}
+                      onChange={(e) => setFilterRole(e.target.value)}
+                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-amber-500/40 font-semibold"
+                    >
+                      <option value="">All Accounts</option>
+                      <option value="STUDENT">Students</option>
+                      <option value="USER">General</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Directory Table */}
                 <div className="bg-neutral-900/10 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
                   {students.length === 0 ? (
                     <div className="p-12 text-center text-sm text-neutral-500 font-medium">
-                      No matching student accounts found.
+                      No matching accounts found.
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse text-xs">
                         <thead>
                           <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
-                            <th className="py-4 px-6">Student Name</th>
+                            <th className="py-4 px-6">Name</th>
                             <th className="py-4 px-6">Course / Batch / Roll</th>
                             <th className="py-4 px-6">Status</th>
                             <th className="py-4 px-6 font-mono">Score</th>
-                            <th className="py-4 px-6 text-right pr-6 w-44">Actions</th>
+                            <th className="py-4 px-6 text-right pr-6 w-56">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-900/60">
                           {students.map((student) => (
                             <tr key={student.id} className="hover:bg-neutral-900/10 transition-colors">
                               <td className="py-4 px-6">
-                                <div className="font-bold text-neutral-200">{student.name}</div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-neutral-200">{student.name}</span>
+                                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold tracking-wider ${
+                                    student.role === 'STUDENT'
+                                      ? 'bg-sky-500/10 text-sky-400'
+                                      : 'bg-neutral-800/50 text-neutral-400'
+                                  }`}>
+                                    {student.role === 'STUDENT' ? 'Student' : 'General'}
+                                  </span>
+                                </div>
                                 <div className="text-[10px] text-neutral-500 mt-0.5">{student.email}</div>
                               </td>
                               <td className="py-4 px-6 text-neutral-400">
-                                {student.courseName} | <strong className="text-neutral-300 font-mono text-[11px]">{student.batchName}</strong> | <strong className="text-neutral-300 font-mono text-[11px]">{student.rollNumber}</strong>
+                                {student.role === 'STUDENT' ? (
+                                  <>
+                                    {student.courseName || '—'} | <strong className="text-neutral-300 font-mono text-[11px]">{student.batchName || '—'}</strong> | <strong className="text-neutral-300 font-mono text-[11px]">{student.rollNumber || '—'}</strong>
+                                  </>
+                                ) : (
+                                  <span className="text-neutral-600">—</span>
+                                )}
                               </td>
                               <td className="py-4 px-6">
                                 <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold tracking-wider ${
@@ -586,33 +641,42 @@ export default function AdminPage() {
                               </td>
                               <td className="py-4 px-6 font-mono font-bold text-amber-500">{student.points} pts</td>
                               <td className="py-4 px-6 text-right pr-6">
-                                {student.status === 'APPROVED' && (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {student.status === 'APPROVED' && (
+                                    <button
+                                      onClick={() => handleUpdateStatus(student.id, 'SUSPENDED')}
+                                      className="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-neutral-950 border border-red-500/20 px-2 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all active:scale-95"
+                                    >
+                                      Suspend
+                                    </button>
+                                  )}
+                                  {student.status === 'SUSPENDED' && (
+                                    <button
+                                      onClick={() => handleUpdateStatus(student.id, 'APPROVED')}
+                                      className="bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-neutral-950 border border-emerald-500/20 px-2 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all active:scale-95"
+                                    >
+                                      Unsuspend
+                                    </button>
+                                  )}
+                                  {student.status === 'PENDING' && (
+                                    <span className="text-[10px] text-neutral-500 italic">Approve in pending tab</span>
+                                  )}
+                                  {student.status === 'REJECTED' && (
+                                    <button
+                                      onClick={() => handleUpdateStatus(student.id, 'APPROVED')}
+                                      className="bg-neutral-850 hover:bg-neutral-800 text-neutral-400 px-2 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all active:scale-95"
+                                    >
+                                      Approve Profile
+                                    </button>
+                                  )}
                                   <button
-                                    onClick={() => handleUpdateStatus(student.id, 'SUSPENDED')}
-                                    className="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-neutral-950 border border-red-500/20 px-2 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all active:scale-95"
+                                    onClick={() => handleDeleteUser(student.id, student.name)}
+                                    title="Permanently delete this account"
+                                    className="bg-neutral-900 hover:bg-red-500 text-neutral-500 hover:text-neutral-950 border border-neutral-800 hover:border-red-500 px-2 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all active:scale-95"
                                   >
-                                    Suspend
+                                    Delete
                                   </button>
-                                )}
-                                {student.status === 'SUSPENDED' && (
-                                  <button
-                                    onClick={() => handleUpdateStatus(student.id, 'APPROVED')}
-                                    className="bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-neutral-950 border border-emerald-500/20 px-2 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all active:scale-95"
-                                  >
-                                    Unsuspend
-                                  </button>
-                                )}
-                                {student.status === 'PENDING' && (
-                                  <span className="text-[10px] text-neutral-500 italic">Approve in pending tab</span>
-                                )}
-                                {student.status === 'REJECTED' && (
-                                  <button
-                                    onClick={() => handleUpdateStatus(student.id, 'APPROVED')}
-                                    className="bg-neutral-850 hover:bg-neutral-800 text-neutral-400 px-2 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all active:scale-95"
-                                  >
-                                    Approve Profile
-                                  </button>
-                                )}
+                                </div>
                               </td>
                             </tr>
                           ))}

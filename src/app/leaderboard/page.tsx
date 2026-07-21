@@ -9,6 +9,7 @@ export default function LeaderboardPage() {
   const [data, setData] = useState<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'general' | 'batch'>('general');
+  const [limit, setLimit] = useState<number>(20);
 
   // Batch filter state
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -111,7 +112,7 @@ export default function LeaderboardPage() {
   const batchList = selectedCourse ? (coursesMap[selectedCourse] ?? []) : [];
   const generalList: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[] = data?.general ?? [];
 
-  const listToRender = activeTab === 'general' ? generalList : batchData;
+  const listToRender = (activeTab === 'general' ? generalList : batchData).slice(0, limit);
 
   return (
     <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col font-sans">
@@ -152,6 +153,26 @@ export default function LeaderboardPage() {
             >
               <Users size={14} /> Batch Leaderboard
             </button>
+          </div>
+
+          {/* Show top N */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Show top</span>
+            <div className="flex bg-neutral-950 p-1 rounded-lg gap-1">
+              {[10, 20, 50, 100].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setLimit(n)}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                    limit === n
+                      ? 'bg-amber-500 text-neutral-950'
+                      : 'text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Batch filter dropdowns (chained: Course → Batch) */}
