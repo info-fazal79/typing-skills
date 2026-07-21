@@ -3,20 +3,38 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { slug } = await params;
 
-    // Fetch user (only public fields)
-    const { data: user, error: userErr } = await supabase
+    // Try to find by slug first, then fall back to id (for backwards compatibility)
+    let user = null;
+
+    // First try by slug
+    const { data: bySlug } = await supabase
       .from('users')
-      .select('id, name, role, status, course_name, batch_name, roll_number, points, best_wpm, avg_wpm, session_count, created_at')
-      .eq('id', id)
+      .select('id, name, role, status, course_name, batch_name, roll_number, points, best_wpm, avg_wpm, session_count, created_at, slug')
+      .eq('slug', slug)
       .eq('status', 'APPROVED')
       .single();
 
-    if (userErr || !user) {
+    if (bySlug) {
+      user = bySlug;
+    } else {
+      // Fall back to searching by id (for old links)
+      const { data: byId } = await supabase
+        .from('users')
+        .select('id, name, role, status, course_name, batch_name, roll_number, points, best_wpm, avg_wpm, session_count, created_at, slug')
+        .eq('id', slug)
+        .eq('status', 'APPROVED')
+        .single();
+      if (byId) {
+        user = byId;
+      }
+    }
+
+    if (!user) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
@@ -24,7 +42,7 @@ export async function GET(
     const { data: sessions } = await supabase
       .from('practice_sessions')
       .select('id, wpm, accuracy, duration, language, mode, created_at')
-      .eq('user_id', id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     const allSessions = sessions || [];
@@ -56,6 +74,7 @@ export async function GET(
         id: user.id,
         name: user.name,
         role: user.role,
+        slug: user.slug ?? null,
         courseName: user.course_name ?? null,
         batchName: user.batch_name ?? null,
         rollNumber: user.roll_number ?? null,

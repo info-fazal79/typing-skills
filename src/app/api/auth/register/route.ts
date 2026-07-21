@@ -80,11 +80,42 @@ export async function POST(req: NextRequest) {
     const userId = crypto.randomUUID();
     const now = new Date().toISOString();
 
+    // ── Generate unique slug from name ───────────────────────────────────────
+    const generateSlugBase = (n: string) =>
+      n.toLowerCase().trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'user';
+
+    const baseSlug = generateSlugBase(name.trim());
+    let slug = baseSlug;
+
+    // Check if slug is taken
+    const { data: existingSlug } = await supabase
+      .from('users').select('id').eq('slug', slug).limit(1);
+
+    if (existingSlug && existingSlug.length > 0) {
+      // Try with roll number first (for students)
+      if (rollNumber) {
+        slug = `${baseSlug}-${String(rollNumber).toLowerCase().replace(/\s+/g, '-')}`;
+        const { data: existingSlug2 } = await supabase
+          .from('users').select('id').eq('slug', slug).limit(1);
+        if (existingSlug2 && existingSlug2.length > 0) {
+          slug = `${baseSlug}-${Math.floor(100 + Math.random() * 900)}`;
+        }
+      } else {
+        slug = `${baseSlug}-${Math.floor(100 + Math.random() * 900)}`;
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     let userData: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ = {
       id: userId,
       name: name.trim(),
       email: emailLower,
       password_hash: passwordHash,
+      slug,
       created_at: now,
       updated_at: now,
     };
@@ -105,7 +136,7 @@ export async function POST(req: NextRequest) {
         ...userData,
         role: 'USER',
         status: 'APPROVED',
-        points: 0, // General users can also have points
+        points: 0,
       };
     }
 

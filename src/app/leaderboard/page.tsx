@@ -244,7 +244,7 @@ export default function LeaderboardPage() {
                       <td className="py-4 px-5 text-center">{renderRankBadge(idx + 1)}</td>
                       <td className="py-4 px-5 font-bold text-neutral-200">
                         <Link
-                          href={`/profile/${entry.id}`}
+                          href={`/profile/${entry.slug ?? entry.id}`}
                           className="hover:text-amber-400 transition-colors hover:underline underline-offset-2"
                         >
                           {entry.name}

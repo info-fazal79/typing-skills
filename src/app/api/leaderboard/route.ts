@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     // ── 2. General Leaderboard ─────────────────────────────────────────────
     const { data: generalSnap } = await supabase
       .from('users')
-      .select('id, name, role, course_name, batch_name, points, best_wpm, avg_wpm')
+      .select('id, name, role, course_name, batch_name, points, best_wpm, avg_wpm, slug')
       .eq('status', 'APPROVED');
 
     const general = (generalSnap || [])
@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
         points: d.points ?? 0,
         bestWpm: d.best_wpm ?? 0,
         avgWpm: d.avg_wpm ?? 0,
+        slug: d.slug ?? null,
       }))
       .sort((a, b) => b.points - a.points || b.bestWpm - a.bestWpm)
       .slice(0, 100);
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
     // ── 3. Batch Leaderboard ───────────────────────────────────────────────
     const { data: allStudentsSnap } = await supabase
       .from('users')
-      .select('id, name, course_name, batch_name, roll_number, points, best_wpm, avg_wpm')
+      .select('id, name, course_name, batch_name, roll_number, points, best_wpm, avg_wpm, slug')
       .eq('status', 'APPROVED')
       .eq('role', 'STUDENT');
 
@@ -58,6 +59,7 @@ export async function GET(req: NextRequest) {
       name: d.name,
       courseName: d.course_name ?? '',
       batchName: d.batch_name ?? '',
+      slug: d.slug ?? null,
       rollNumber: d.roll_number ?? '',
       points: d.points ?? 0,
       bestWpm: d.best_wpm ?? 0,

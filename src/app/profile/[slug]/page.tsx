@@ -37,21 +37,21 @@ interface ProfileData {
   }[];
 }
 
-export default function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
+export default function ProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [resolvedId, setResolvedId] = useState<string>('');
+  const [resolvedSlug, setResolvedSlug] = useState<string>('');
 
   useEffect(() => {
-    params.then(p => setResolvedId(p.id));
+    params.then(p => setResolvedSlug(p.slug));
   }, [params]);
 
   useEffect(() => {
-    if (!resolvedId) return;
+    if (!resolvedSlug) return;
     const fetchProfile = async () => {
       try {
-        const res = await fetch(`/api/profile/${resolvedId}`);
+        const res = await fetch(`/api/profile/${resolvedSlug}`);
         if (res.status === 404) {
           setNotFound(true);
           return;
@@ -65,7 +65,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
       }
     };
     fetchProfile();
-  }, [resolvedId]);
+  }, [resolvedSlug]);
 
   if (loading) {
     return (
@@ -99,48 +99,12 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
   const joinYear = new Date(profile.joinedAt).getFullYear();
 
   const statCards = [
-    {
-      icon: <Zap size={18} className="text-sky-400" />,
-      label: 'Best WPM',
-      value: analytics.bestWpm,
-      unit: 'wpm',
-      color: 'sky',
-    },
-    {
-      icon: <Target size={18} className="text-emerald-400" />,
-      label: 'Avg Accuracy',
-      value: `${analytics.avgAccuracy}%`,
-      unit: '',
-      color: 'emerald',
-    },
-    {
-      icon: <Trophy size={18} className="text-amber-400" />,
-      label: 'Total Points',
-      value: analytics.totalTests > 0 ? profile.points : 0,
-      unit: 'pts',
-      color: 'amber',
-    },
-    {
-      icon: <Clock size={18} className="text-violet-400" />,
-      label: 'Practice Time',
-      value: analytics.totalMinutes,
-      unit: 'min',
-      color: 'violet',
-    },
-    {
-      icon: <BookOpen size={18} className="text-rose-400" />,
-      label: 'Total Sessions',
-      value: analytics.totalTests,
-      unit: 'tests',
-      color: 'rose',
-    },
-    {
-      icon: <Zap size={18} className="text-neutral-400" />,
-      label: 'Avg WPM',
-      value: analytics.avgWpm,
-      unit: 'wpm',
-      color: 'neutral',
-    },
+    { icon: <Zap size={18} className="text-sky-400" />, label: 'Best WPM', value: analytics.bestWpm, unit: 'wpm', color: 'sky' },
+    { icon: <Target size={18} className="text-emerald-400" />, label: 'Avg Accuracy', value: `${analytics.avgAccuracy}%`, unit: '', color: 'emerald' },
+    { icon: <Trophy size={18} className="text-amber-400" />, label: 'Total Points', value: analytics.totalTests > 0 ? profile.points : 0, unit: 'pts', color: 'amber' },
+    { icon: <Clock size={18} className="text-violet-400" />, label: 'Practice Time', value: analytics.totalMinutes, unit: 'min', color: 'violet' },
+    { icon: <BookOpen size={18} className="text-rose-400" />, label: 'Total Sessions', value: analytics.totalTests, unit: 'tests', color: 'rose' },
+    { icon: <Zap size={18} className="text-neutral-400" />, label: 'Avg WPM', value: analytics.avgWpm, unit: 'wpm', color: 'neutral' },
   ];
 
   const colorMap: Record<string, string> = {
@@ -156,7 +120,8 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
     <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col gap-6">
+      {/* Match leaderboard's max-w-5xl width */}
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col gap-6">
 
         {/* Back link */}
         <Link
@@ -267,18 +232,11 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                 <tbody className="divide-y divide-neutral-900/50">
                   {recentSessions.map((s) => {
                     const date = new Date(s.createdAt);
-                    const dateStr = date.toLocaleDateString(undefined, {
-                      month: 'short', day: 'numeric', year: 'numeric',
-                    });
-                    const timeStr = date.toLocaleTimeString(undefined, {
-                      hour: '2-digit', minute: '2-digit',
-                    });
+                    const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                    const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
                     const durationMins = Math.floor(s.duration / 60);
                     const durationSecs = s.duration % 60;
-                    const durationStr = durationMins > 0
-                      ? `${durationMins}m ${durationSecs}s`
-                      : `${durationSecs}s`;
-
+                    const durationStr = durationMins > 0 ? `${durationMins}m ${durationSecs}s` : `${durationSecs}s`;
                     return (
                       <tr key={s.id} className="hover:bg-neutral-900/20 transition-colors">
                         <td className="py-3 px-5">
@@ -305,7 +263,6 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
             </div>
           )}
         </section>
-
       </main>
     </div>
   );
