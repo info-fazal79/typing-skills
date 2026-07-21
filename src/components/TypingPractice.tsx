@@ -645,7 +645,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
       )}
 
       {/* Footer */}
-      <div className="flex justify-between text-neutral-500 text-xs px-2 select-none">
+      <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-0 text-neutral-500 text-xs px-2 select-none">
         <span>Press <kbd className="bg-neutral-800 text-neutral-400 px-1.5 py-0.5 rounded font-mono border border-neutral-700">Esc</kbd> or the reset icon to restart.</span>
         <span>Keyboard Layout: <strong className="text-neutral-400">System IME (Avro/Bijoy supported)</strong></span>
       </div>
