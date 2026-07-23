@@ -1,41 +1,36 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
+let client: Resend | null = null;
 
-function getTransporter() {
-  if (transporter) return transporter;
+function getClient(): Resend | null {
+  if (client) return client;
 
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
-    return null;
-  }
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
 
-  transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-  });
-  return transporter;
+  client = new Resend(apiKey);
+  return client;
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<boolean> {
-  const t = getTransporter();
-  if (!t) {
-    console.error(
-      'Password reset email not sent: SMTP is not configured (set SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS).'
-    );
+  const resend = getClient();
+  if (!resend) {
+    console.error('Password reset email not sent: RESEND_API_KEY is not configured.');
     return false;
   }
 
   try {
-    await t.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    const { error } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'Typing Institute <onboarding@resend.dev>',
       to,
       subject: 'Reset your Typing Institute password',
       text: `Reset your password: ${resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, you can ignore this email.`,
       html: `<p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you didn't request this, you can safely ignore this email.</p>`,
     });
+    if (error) {
+      console.error('Failed to send password reset email:', error);
+      return false;
+    }
     return true;
   } catch (err) {
     console.error('Failed to send password reset email:', err);
