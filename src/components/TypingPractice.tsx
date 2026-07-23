@@ -464,8 +464,11 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
             ))}
           </div>
 
-          {/* Mode */}
-          <div className="flex flex-wrap gap-1 bg-neutral-950 p-1 rounded-lg">
+          {/* Mode — scrolls horizontally instead of wrapping. Wrapping left a
+              lone button (e.g. "Numbers", or the 5th Bangla mode) stranded on
+              its own row inside the shared pill background, a lopsided shape
+              at narrow widths. */}
+          <div className="flex gap-1 bg-neutral-950 p-1 rounded-lg overflow-x-auto">
             {(language === 'english'
               ? [{ id: 'standard', label: 'Standard' }, { id: 'punctuation', label: 'Punctuation' }, { id: 'numbers', label: 'Numbers' }]
               : [
@@ -479,7 +482,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
               <button
                 key={id}
                 onClick={() => setMode(id)}
-                className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md font-medium transition-all shrink-0 whitespace-nowrap ${
                   mode === id
                     ? 'bg-neutral-800 text-amber-400'
                     : 'text-neutral-400 hover:text-neutral-200'
@@ -559,25 +562,27 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
           {/* Live stats bar */}
           <div className="absolute top-4 left-6 right-6 flex items-center justify-between text-neutral-400 text-xs tracking-wider uppercase font-semibold">
             <div className="flex items-center gap-4">
-              <span>Time: <strong className="text-amber-400 font-mono text-base">{timeLeft}s</strong></span>
+              {/* normal-case overrides the row's uppercase — otherwise the
+                  lowercase "s" suffix renders as "29S" */}
+              <span>Time: <strong className="text-amber-400 font-mono text-base normal-case">{timeLeft}s</strong></span>
               <span>WPM: <strong className="text-neutral-200 font-mono text-base">{wpm}</strong></span>
               <span>Accuracy: <strong className="text-neutral-200 font-mono text-base">{accuracy}%</strong></span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!soundEnabled) { getAudioCtx(); ensureBuffers(); }
                   setSoundEnabled((s) => !s);
                 }}
-                className={`p-1 rounded transition-colors ${soundEnabled ? 'text-amber-400' : 'text-neutral-400 hover:text-amber-400'}`}
+                className={`p-2.5 rounded-lg transition-colors ${soundEnabled ? 'text-amber-400' : 'text-neutral-400 hover:text-amber-400'}`}
                 title={soundEnabled ? 'Mute key sounds' : 'Enable key sounds'}
               >
                 {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleReset(); }}
-                className="hover:text-amber-400 p-1 rounded transition-colors"
+                className="hover:text-amber-400 p-2.5 rounded-lg transition-colors"
                 title="Restart (Esc)"
               >
                 <RotateCcw size={16} />
@@ -664,14 +669,17 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
           {chartData.length > 0 && (
             <div className="w-full h-64 bg-neutral-950/40 p-4 rounded-xl border border-neutral-800/80 animate-in fade-in duration-500">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 20, left: 0 }}>
                   <CartesianGrid stroke="#262626" vertical={false} />
                   <XAxis
                     dataKey="second"
                     stroke="#737373"
                     fontSize={12}
                     tickLine={false}
-                    label={{ value: 'seconds', position: 'insideBottom', offset: -4, fill: '#737373', fontSize: 11 }}
+                    // "bottom" (not "insideBottom") places this below the tick
+                    // numbers in the margin reserved above, instead of
+                    // overlapping them and getting clipped by the container.
+                    label={{ value: 'seconds', position: 'bottom', offset: 0, fill: '#737373', fontSize: 11 }}
                   />
                   <YAxis
                     yAxisId="left"
@@ -725,14 +733,19 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
           {/* Standard Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Speed',         value: <>{wpm} <span className="text-sm font-semibold text-neutral-400">WPM</span></>,  cls: 'text-amber-400' },
-              { label: 'Accuracy',      value: `${accuracy}%`,  cls: 'text-neutral-200' },
-              { label: 'Time Spent',    value: `${timeElapsed}s`, cls: 'text-neutral-200' },
-              { label: 'Language/Mode', value: `${language} – ${mode}`, cls: 'text-neutral-300 text-sm font-semibold capitalize' },
+              { label: 'Speed',         value: <>{wpm} <span className="text-sm font-semibold text-neutral-400">WPM</span></>,  cls: 'text-amber-400 text-3xl sm:text-4xl font-mono' },
+              { label: 'Accuracy',      value: `${accuracy}%`,  cls: 'text-neutral-200 text-3xl sm:text-4xl font-mono' },
+              { label: 'Time Spent',    value: `${timeElapsed}s`, cls: 'text-neutral-200 text-3xl sm:text-4xl font-mono' },
+              // Language/Mode is text, not a number — it previously shared
+              // the same text-3xl/4xl size as the numeric stats above, which
+              // made "English – Standard" wrap across 3 lines with the dash
+              // stranded alone. Sized down here instead of fighting the
+              // numeric stats' size classes on the same element.
+              { label: 'Language/Mode', value: `${language} – ${mode}`, cls: 'text-neutral-300 text-lg sm:text-xl font-semibold capitalize leading-tight' },
             ].map(({ label, value, cls }) => (
               <div key={label} className="bg-neutral-950/40 border border-neutral-800 p-4 rounded-xl flex flex-col justify-center">
                 <span className="text-neutral-500 text-xs font-medium uppercase tracking-wider">{label}</span>
-                <span className={`font-bold text-3xl sm:text-4xl font-mono mt-1 ${cls}`}>{value}</span>
+                <span className={`font-bold mt-1 ${cls}`}>{value}</span>
               </div>
             ))}
           </div>
@@ -745,9 +758,9 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
             </div>
             
             <div className="bg-neutral-950/20 p-4 rounded-xl border border-neutral-800/50 flex flex-col">
-              <span className="text-neutral-500 text-xs font-medium uppercase tracking-wider">Accuracy Ratio (C/I/E/M)</span>
+              <span className="text-neutral-500 text-xs font-medium uppercase tracking-wider">Accuracy Ratio (Correct/Incorrect)</span>
               <span className="text-xl font-bold font-mono text-neutral-300 mt-1">
-                {correctChars}/{incorrectChars}/0/0
+                {correctChars}/{incorrectChars}
               </span>
             </div>
 
