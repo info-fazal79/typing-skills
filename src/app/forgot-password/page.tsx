@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, ArrowRight, Mail, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Mail, CheckCircle2 } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -37,12 +38,9 @@ export default function ForgotPasswordPage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4">
-      <Link href="/" className="flex items-center gap-2 mb-8 group">
-        <Sparkles className="text-amber-500 group-hover:rotate-12 transition-transform duration-300" size={32} />
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-transparent">
-          Typing Institute
-        </h1>
-      </Link>
+      <div className="mb-8">
+        <Logo size="large" />
+      </div>
 
       <div className="w-full max-w-md bg-surface/50 border border-neutral-800 p-8 rounded-2xl backdrop-blur-md shadow-2xl">
         {submitted ? (
@@ -54,7 +52,7 @@ export default function ForgotPasswordPage() {
             <p className="text-sm text-neutral-400 leading-relaxed">
               If an account with that email exists, we&apos;ve sent a link to reset your password. It expires in 1 hour.
             </p>
-            <Link href="/login" className="text-amber-500 hover:underline text-sm mt-2">
+            <Link href="/login" className="text-brand-500 hover:underline text-sm mt-2">
               Back to Log In
             </Link>
           </div>
@@ -83,7 +81,7 @@ export default function ForgotPasswordPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-brand-500/50 transition-colors text-sm"
                   />
                 </div>
               </div>
@@ -91,7 +89,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/10 active:scale-95 mt-2"
+                className="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-brand-500/10 active:scale-95 mt-2"
               >
                 {loading ? 'Sending...' : 'Send Reset Link'}
                 {!loading && <ArrowRight size={16} />}
@@ -100,7 +98,7 @@ export default function ForgotPasswordPage() {
 
             <p className="mt-8 text-neutral-500 text-xs text-center">
               Remembered your password?{' '}
-              <Link href="/login" className="text-amber-500 hover:underline">
+              <Link href="/login" className="text-brand-500 hover:underline">
                 Log In
               </Link>
             </p>

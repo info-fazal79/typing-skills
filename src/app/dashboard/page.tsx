@@ -71,7 +71,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center gap-3">
-          <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-amber-400 border-r-2 border-transparent" />
+          <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-brand-400 border-r-2 border-transparent" />
           <span className="text-neutral-500 text-sm font-medium">Loading your dashboard…</span>
         </div>
       </div>
@@ -86,7 +86,7 @@ export default function DashboardPage() {
           <AlertCircle size={48} className="text-red-500" />
           <h2 className="text-2xl font-bold text-neutral-100">Failed to Load Dashboard</h2>
           <p className="text-neutral-400 text-sm">{error || 'An unexpected error occurred.'}</p>
-          <button onClick={() => window.location.reload()} className="bg-amber-500 text-neutral-950 font-bold px-4 py-2 rounded-lg">
+          <button onClick={() => window.location.reload()} className="bg-brand-500 text-neutral-950 font-bold px-4 py-2 rounded-lg">
             Retry
           </button>
         </div>
@@ -102,7 +102,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 max-w-xl mx-auto flex flex-col items-center justify-center text-center p-6 gap-6">
-          <div className="bg-amber-500/10 text-amber-500 p-4 rounded-full border border-amber-500/20 animate-pulse">
+          <div className="bg-brand-500/10 text-brand-500 p-4 rounded-full border border-brand-500/20 animate-pulse">
             <Clock size={48} />
           </div>
           <div className="flex flex-col gap-2">
@@ -143,13 +143,13 @@ export default function DashboardPage() {
           <div className="bg-surface/40 border border-neutral-800 p-6 rounded-2xl flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-neutral-800 pb-3">
               <div>
-                <span className="text-[11px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Task Assignment</span>
+                <span className="text-[11px] bg-brand-500/10 text-brand-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Task Assignment</span>
                 <h2 className="text-lg font-bold text-neutral-100 mt-1">{activeTask.title}</h2>
               </div>
               <div className="flex flex-wrap gap-4 text-xs font-semibold text-neutral-400">
                 <span>Language: <strong className="text-neutral-200 capitalize">{activeTask.language?.toLowerCase()}</strong></span>
-                <span>Target Speed: <strong className="text-amber-400 font-mono">{activeTask.targetWpm} WPM</strong></span>
-                <span>Target Accuracy: <strong className="text-amber-400 font-mono">{activeTask.targetAccuracy}%</strong></span>
+                <span>Target Speed: <strong className="text-brand-400 font-mono">{activeTask.targetWpm} WPM</strong></span>
+                <span>Target Accuracy: <strong className="text-brand-400 font-mono">{activeTask.targetAccuracy}%</strong></span>
               </div>
             </div>
             <TypingPractice initialText={activeTask.textContent} isTask={true} onSessionComplete={handleTaskSessionComplete} />
@@ -203,9 +203,9 @@ export default function DashboardPage() {
             </g>
           );
         })}
-        <path d={pathData} fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={pathData} fill="none" stroke="#c1863f" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         {points.map((p: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, idx: number) => (
-          <circle key={idx} cx={p.x} cy={p.y} r="3.5" fill="var(--background)" stroke="#f59e0b" strokeWidth="2">
+          <circle key={idx} cx={p.x} cy={p.y} r="3.5" fill="var(--background)" stroke="#c1863f" strokeWidth="2">
             <title>{`${p.wpm} WPM — ${p.accuracy}% Acc`}</title>
           </circle>
         ))}
@@ -216,7 +216,7 @@ export default function DashboardPage() {
   // ── Performance trend badge ───────────────────────────────────────────────
   const trendConfig: Record<string, { icon: React.ReactNode; label: string; color: string; bg: string }> = {
     improving: { icon: <TrendingUp size={16} />, label: 'Your speed is improving! Keep it up 🚀', color: 'text-emerald-400', bg: 'bg-emerald-950/30 border-emerald-900/50' },
-    stable: { icon: <Minus size={16} />, label: 'Performance is steady. Push for a new record!', color: 'text-amber-400', bg: 'bg-amber-950/30 border-amber-900/50' },
+    stable: { icon: <Minus size={16} />, label: 'Performance is steady. Push for a new record!', color: 'text-brand-400', bg: 'bg-brand-950/30 border-brand-900/50' },
     declining: { icon: <TrendingDown size={16} />, label: 'A slight dip — more practice will bring you back!', color: 'text-red-400', bg: 'bg-red-950/30 border-red-900/50' },
     new: { icon: <Star size={16} />, label: 'Welcome! Start typing to track your progress.', color: 'text-sky-400', bg: 'bg-sky-950/30 border-sky-900/50' },
   };
@@ -242,7 +242,7 @@ export default function DashboardPage() {
               }
             />
             <div>
-              <span className="text-[11px] font-bold text-amber-500 uppercase tracking-widest">
+              <span className="text-[11px] font-bold text-brand-500 uppercase tracking-widest">
                 {user?.role === 'STUDENT' ? 'Student Profile' : 'General Profile'}
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-neutral-100 mt-0.5">{user?.name}</h1>
@@ -263,7 +263,7 @@ export default function DashboardPage() {
           </div>
           {user?.role === 'STUDENT' && (
             <div className="flex items-center gap-2 bg-neutral-950 px-4 py-2.5 rounded-xl border border-neutral-800">
-              <Award className="text-amber-500" size={22} />
+              <Award className="text-brand-500" size={22} />
               <div className="flex flex-col">
                 <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">Total Score</span>
                 <span className="font-mono text-base font-bold text-neutral-200">{user.points} pts</span>
@@ -286,10 +286,10 @@ export default function DashboardPage() {
               suffix: ' min',
             },
           ].map(({ label, value, icon, suffix }) => (
-            <div key={label} className="p-5 rounded-2xl border border-neutral-800 bg-surface/20 flex flex-col gap-3">
+            <div key={label} className="p-5 rounded-lg border border-neutral-800 bg-surface/20 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest">{label}</span>
-                <span className="text-amber-500/70">{icon}</span>
+                <span className="text-brand-500/70">{icon}</span>
               </div>
               <p className="font-mono text-3xl font-black text-neutral-100 leading-none">
                 {value}<span className="text-sm text-neutral-500 font-semibold">{suffix}</span>
@@ -301,14 +301,14 @@ export default function DashboardPage() {
         {/* ── Performance trend + Daily goal ── */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Trend */}
-          <div className={`md:col-span-2 p-4 rounded-2xl border flex items-center gap-3 ${trend.bg}`}>
+          <div className={`md:col-span-2 p-4 rounded-lg border flex items-center gap-3 ${trend.bg}`}>
             <span className={trend.color}>{trend.icon}</span>
             <p className={`text-sm font-semibold ${trend.color}`}>{trend.label}</p>
           </div>
 
           {/* Daily goal (students only) */}
           {user?.role === 'STUDENT' ? (
-            <div className="p-5 rounded-2xl border border-neutral-800 bg-surface/20 flex flex-col justify-between gap-3">
+            <div className="p-5 rounded-lg border border-neutral-800 bg-surface/20 flex flex-col justify-between gap-3">
               <div className="flex justify-between items-start">
                 <div>
                   <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Daily Goal</span>
@@ -316,14 +316,14 @@ export default function DashboardPage() {
                     {targets.todayMinutesPracticed} / {targets.targetMinutes} mins
                   </h3>
                 </div>
-                <div className="p-2 bg-neutral-950 rounded-lg text-amber-500 border border-neutral-800">
+                <div className="p-2 bg-neutral-950 rounded-lg text-brand-500 border border-neutral-800">
                   <Clock size={16} />
                 </div>
               </div>
               <div>
                 <div className="w-full bg-neutral-950 h-2.5 rounded-full overflow-hidden border border-neutral-800">
                   <div
-                    className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                    className="bg-brand-500 h-full rounded-full transition-all duration-500"
                     style={{ width: `${targets.percentComplete}%` }}
                   />
                 </div>
@@ -334,8 +334,8 @@ export default function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="p-5 rounded-2xl border border-neutral-800 bg-surface/20 flex flex-col justify-center items-center gap-1 text-center">
-              <Clock size={20} className="text-amber-500/60" />
+            <div className="p-5 rounded-lg border border-neutral-800 bg-surface/20 flex flex-col justify-center items-center gap-1 text-center">
+              <Clock size={20} className="text-brand-500/60" />
               <p className="text-xs text-neutral-500 font-semibold">Practice any time — no daily target for general users.</p>
             </div>
           )}
@@ -343,18 +343,18 @@ export default function DashboardPage() {
 
         {/* ── Charts ── */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-5 rounded-2xl border border-neutral-800 bg-surface/20 flex flex-col gap-3">
+          <div className="p-5 rounded-lg border border-neutral-800 bg-surface/20 flex flex-col gap-3">
             <div className="flex items-center gap-2 border-b border-neutral-800 pb-2">
-              <TrendingUp className="text-amber-500" size={16} />
+              <TrendingUp className="text-brand-500" size={16} />
               <h3 className="text-sm font-bold text-neutral-200">WPM Trend</h3>
             </div>
             {renderWpmChart()}
             <p className="text-[11px] text-neutral-500 text-center uppercase tracking-wider font-semibold">Last 15 sessions</p>
           </div>
 
-          <div className="p-5 rounded-2xl border border-neutral-800 bg-surface/20 flex flex-col gap-3">
+          <div className="p-5 rounded-lg border border-neutral-800 bg-surface/20 flex flex-col gap-3">
             <div className="flex items-center gap-2 border-b border-neutral-800 pb-2">
-              <BarChart3 className="text-amber-500" size={16} />
+              <BarChart3 className="text-brand-500" size={16} />
               <h3 className="text-sm font-bold text-neutral-200">Daily Practice (Mins)</h3>
             </div>
             <div className="flex items-end justify-between gap-1.5 h-32 px-1">
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                   <div key={d.dayName} className="flex flex-col items-center gap-1 flex-1">
                     <span className="text-[9px] font-mono text-neutral-500">{d.minutes > 0 ? d.minutes : ''}</span>
                     <div
-                      className="w-full bg-amber-500/70 rounded-t transition-all duration-500"
+                      className="w-full bg-brand-500/70 rounded-t transition-all duration-500"
                       style={{ height: `${pct}%` }}
                       title={`${d.minutes} min`}
                     />
@@ -379,9 +379,9 @@ export default function DashboardPage() {
         </section>
 
         {/* ── Recent Practice History ── */}
-        <section className="p-5 rounded-2xl border border-neutral-800 bg-surface/10 flex flex-col gap-4">
+        <section className="p-5 rounded-lg border border-neutral-800 bg-surface/10 flex flex-col gap-4">
           <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
-            <Clock className="text-amber-500" size={18} />
+            <Clock className="text-brand-500" size={18} />
             <h2 className="text-base font-bold text-neutral-100">Recent Practice History</h2>
           </div>
 
@@ -417,7 +417,7 @@ export default function DashboardPage() {
                     <tr key={s.id ?? idx} className="hover:bg-neutral-900/30 transition-colors">
                       <td className="py-3 px-3 text-neutral-400">{dateStr}</td>
                       <td className="py-3 px-3 text-neutral-500">{timeStr}</td>
-                      <td className="py-3 px-3 text-right font-mono font-bold text-amber-400">{s.wpm}</td>
+                      <td className="py-3 px-3 text-right font-mono font-bold text-brand-400">{s.wpm}</td>
                       <td className="py-3 px-3 text-right font-mono text-neutral-300">{s.accuracy}%</td>
                       <td className="py-3 px-3 text-right text-neutral-400">{s.duration}s</td>
                       <td className="py-3 px-3 text-neutral-400 capitalize">{s.language}</td>
@@ -437,9 +437,9 @@ export default function DashboardPage() {
 
         {/* ── Task Assignments (Students only) ── */}
         {user?.role === 'STUDENT' && (
-          <section className="p-5 rounded-2xl border border-neutral-800 bg-surface/10 flex flex-col gap-4">
+          <section className="p-5 rounded-lg border border-neutral-800 bg-surface/10 flex flex-col gap-4">
             <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
-              <BookOpen className="text-amber-500" size={18} />
+              <BookOpen className="text-brand-500" size={18} />
               <h2 className="text-base font-bold text-neutral-100">Batch Typing Assignments</h2>
             </div>
             {tasks.length === 0 ? (
@@ -467,7 +467,7 @@ export default function DashboardPage() {
                           ? 'bg-emerald-500/10 text-emerald-400'
                           : task.status === 'MISSED'
                           ? 'bg-red-500/10 text-red-400'
-                          : 'bg-amber-500/10 text-amber-400'
+                          : 'bg-brand-500/10 text-brand-400'
                       }`}>
                         {task.status}
                       </span>
@@ -491,7 +491,7 @@ export default function DashboardPage() {
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${
                             task.status === 'MISSED'
                               ? 'bg-red-950 text-red-400 hover:bg-red-900/30'
-                              : 'bg-amber-500 text-neutral-950 hover:bg-amber-400'
+                              : 'bg-brand-500 text-neutral-950 hover:bg-brand-400'
                           }`}
                         >
                           <Play size={12} />

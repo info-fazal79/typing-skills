@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Sparkles, Trophy, LayoutDashboard, LogOut, Award, LogIn } from 'lucide-react';
+import { Trophy, LayoutDashboard, LogOut, Award, LogIn } from 'lucide-react';
 import { Avatar } from './Avatar';
+import { Logo } from './Logo';
 
 interface UserData {
   id: string;
@@ -68,12 +69,7 @@ export function Navbar() {
     <header className="w-full border-b border-neutral-950 bg-background/75 backdrop-blur-md sticky top-0 z-40 transition-all select-none">
       <div className="max-w-6xl mx-auto h-16 flex items-center justify-between px-4 sm:px-6">
         {/* Left Side Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <Sparkles className="text-amber-500 group-hover:rotate-12 transition-transform duration-300" size={20} />
-          <span className="font-extrabold tracking-tight bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-transparent sm:text-lg">
-            Typing Institute
-          </span>
-        </Link>
+        <Logo />
 
         {/* Center / Navigation Links */}
         <nav className="hidden sm:flex items-center gap-1">
@@ -81,7 +77,7 @@ export function Navbar() {
             href="/"
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
               pathname === '/' 
-                ? 'bg-neutral-900 text-amber-400' 
+                ? 'bg-neutral-900 text-brand-400' 
                 : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-950'
             }`}
           >
@@ -94,7 +90,7 @@ export function Navbar() {
                 href="/dashboard"
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   pathname === '/dashboard' 
-                    ? 'bg-neutral-900 text-amber-400' 
+                    ? 'bg-neutral-900 text-brand-400' 
                     : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-950'
                 }`}
               >
@@ -104,7 +100,7 @@ export function Navbar() {
                 href="/leaderboard"
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   pathname === '/leaderboard' 
-                    ? 'bg-neutral-900 text-amber-400' 
+                    ? 'bg-neutral-900 text-brand-400' 
                     : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-950'
                 }`}
               >
@@ -118,7 +114,7 @@ export function Navbar() {
               href="/admin"
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 pathname.startsWith('/admin') 
-                  ? 'bg-amber-500/10 text-amber-400' 
+                  ? 'bg-brand-500/10 text-brand-400' 
                   : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-950'
               }`}
             >
@@ -133,7 +129,7 @@ export function Navbar() {
             <div className="flex items-center gap-3 sm:gap-4">
               {/* Point Badge (Unconditional for logged-in users) */}
               <div className="flex items-center gap-1.5 bg-neutral-950 px-2.5 py-1 rounded-full border border-neutral-800" title="Your total points">
-                <Award size={14} className="text-amber-500" />
+                <Award size={14} className="text-brand-500" />
                 <span className="font-mono text-xs font-bold text-neutral-300">{user.points ?? 0} pts</span>
               </div>
 
@@ -142,7 +138,7 @@ export function Navbar() {
                 <div className="flex flex-col text-right">
                   <span className="text-xs font-bold text-neutral-200 leading-none">{user.name}</span>
                   {user.role === 'ADMIN' && (
-                    <span className="text-[11px] text-amber-500/80 uppercase tracking-wider font-semibold mt-0.5">Administrator</span>
+                    <span className="text-[11px] text-brand-500/80 uppercase tracking-wider font-semibold mt-0.5">Administrator</span>
                   )}
                 </div>
                 <Avatar src={user.avatarUrl} name={user.name} size={30} />
@@ -151,10 +147,10 @@ export function Navbar() {
               {/* Mobile quick links */}
               {(user.role === 'STUDENT' || user.role === 'USER') && (
                 <div className="flex sm:hidden gap-1">
-                  <Link href="/dashboard" className="p-1.5 rounded-lg text-neutral-400 hover:text-amber-400 hover:bg-neutral-900" title="Dashboard">
+                  <Link href="/dashboard" className="p-1.5 rounded-lg text-neutral-400 hover:text-brand-400 hover:bg-neutral-900" title="Dashboard">
                     <LayoutDashboard size={18} />
                   </Link>
-                  <Link href="/leaderboard" className="p-1.5 rounded-lg text-neutral-400 hover:text-amber-400 hover:bg-neutral-900" title="Leaderboard">
+                  <Link href="/leaderboard" className="p-1.5 rounded-lg text-neutral-400 hover:text-brand-400 hover:bg-neutral-900" title="Leaderboard">
                     <Trophy size={18} />
                   </Link>
                 </div>
@@ -173,14 +169,14 @@ export function Navbar() {
             <div className="flex gap-2">
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-neutral-300 hover:text-amber-400 hover:bg-neutral-950 transition-all text-xs font-bold"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-neutral-300 hover:text-brand-400 hover:bg-neutral-950 transition-all text-xs font-bold"
               >
                 <LogIn size={14} />
                 Log In
               </Link>
               <Link
                 href="/register"
-                className="bg-amber-500 text-neutral-950 hover:bg-amber-400 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md shadow-amber-500/10"
+                className="bg-brand-500 text-neutral-950 hover:bg-brand-400 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md shadow-brand-500/10"
               >
                 Register
               </Link>

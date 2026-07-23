@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { TypingPractice } from '@/components/TypingPractice';
-import { Sparkles, Languages, Star, BookOpen, Trophy } from 'lucide-react';
+import { Keyboard, BookOpen } from 'lucide-react';
 
 export default function LandingPage() {
   const [saveStatus, setSaveStatus] = useState<string>('');
@@ -48,8 +48,8 @@ export default function LandingPage() {
       {/* Hero Header */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-12 flex flex-col gap-10">
         <section className="text-center flex flex-col items-center gap-3">
-          <div className="inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 px-3 py-1 rounded-full text-xs font-semibold text-amber-400">
-            <Sparkles size={12} />
+          <div className="inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 px-3 py-1 rounded-full text-xs font-semibold text-brand-400">
+            <Keyboard size={12} />
             Educational Typing Platform
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-neutral-100">
@@ -67,42 +67,35 @@ export default function LandingPage() {
           <TypingPractice onSessionComplete={handleSessionComplete} />
           
           {saveStatus && (
-            <div className="mt-4 p-3.5 rounded-xl text-xs font-semibold text-center bg-neutral-950 border border-neutral-800 flex items-center justify-center gap-2 max-w-xl mx-auto text-amber-400">
-              <BookOpen size={14} className="text-amber-500 animate-pulse" />
+            <div className="mt-4 p-3.5 rounded-xl text-xs font-semibold text-center bg-neutral-950 border border-neutral-800 flex items-center justify-center gap-2 max-w-xl mx-auto text-brand-400">
+              <BookOpen size={14} className="text-brand-500 animate-pulse" />
               {saveStatus}
             </div>
           )}
         </section>
 
-        {/* Informational Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-          <div className="bg-surface/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col gap-3">
-            <div className="text-amber-500 bg-amber-500/10 p-2.5 rounded-lg w-max border border-amber-500/20">
-              <Languages size={20} />
-            </div>
-            <h3 className="text-base font-bold text-neutral-100">Dual-Language Support</h3>
+        {/* Feature readout — a terminal-prompt styled block instead of the
+            generic icon-in-a-box card pattern, closer to the app's own
+            monospace/typing visual language */}
+        <section className="border border-neutral-800/60 rounded-lg bg-surface/20 divide-y divide-neutral-800/60 md:divide-y-0 md:divide-x md:grid md:grid-cols-3 mt-6">
+          <div className="p-6 flex flex-col gap-2">
+            <span className="font-mono text-[11px] text-brand-500 tracking-widest">&gt; LANGUAGES</span>
             <p className="text-neutral-400 text-xs leading-relaxed">
-              Toggle instantly between English modes (Standard, Punctuation, Numbers) and Bangla modes (Vowels, Consonants, Modifiers, Conjuncts, Mixed).
+              English (Standard, Punctuation, Numbers) and বাংলা (Vowels, Consonants, Modifiers, Conjuncts, Mixed) — switch instantly, mid-session.
             </p>
           </div>
 
-          <div className="bg-surface/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col gap-3">
-            <div className="text-amber-500 bg-amber-500/10 p-2.5 rounded-lg w-max border border-amber-500/20">
-              <Star size={20} />
-            </div>
-            <h3 className="text-base font-bold text-neutral-100">Gamified Tracking</h3>
+          <div className="p-6 flex flex-col gap-2">
+            <span className="font-mono text-[11px] text-brand-500 tracking-widest">&gt; SCORING</span>
             <p className="text-neutral-400 text-xs leading-relaxed">
-              Gain points for accurate sessions. Meet your batch targets to maintain your points, but watch out: daily inactivity drops your points!
+              Points scale with speed, accuracy, and category difficulty. Meet your daily target to keep them — miss one, and it costs you.
             </p>
           </div>
 
-          <div className="bg-surface/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col gap-3">
-            <div className="text-amber-500 bg-amber-500/10 p-2.5 rounded-lg w-max border border-amber-500/20">
-              <Trophy size={20} />
-            </div>
-            <h3 className="text-base font-bold text-neutral-100">Batch Competitions</h3>
+          <div className="p-6 flex flex-col gap-2">
+            <span className="font-mono text-[11px] text-brand-500 tracking-widest">&gt; RANKINGS</span>
             <p className="text-neutral-400 text-xs leading-relaxed">
-              Compare your progress inside your specific batch or check out the Overall leaderboard to see the top typists across the entire institute.
+              Compete inside your batch, or check the institute-wide leaderboard to see where you stand against everyone.
             </p>
           </div>
         </section>

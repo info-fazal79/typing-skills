@@ -88,7 +88,7 @@ export default function LeaderboardPage() {
   const renderRankBadge = (rank: number) => {
     if (rank === 1)
       return (
-        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/25">
+        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/25">
           <Crown size={13} className="animate-bounce" />
         </div>
       );
@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
       );
     if (rank === 3)
       return (
-        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-800/10 text-amber-700 border border-amber-800/25 text-xs font-bold font-mono">
+        <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-800/10 text-brand-700 border border-brand-800/25 text-xs font-bold font-mono">
           3
         </div>
       );
@@ -112,7 +112,7 @@ export default function LeaderboardPage() {
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center gap-3">
-          <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-amber-400 border-r-2 border-transparent" />
+          <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-brand-400 border-r-2 border-transparent" />
           <span className="text-neutral-500 text-sm font-medium">Loading leaderboards…</span>
         </div>
       </div>
@@ -140,18 +140,18 @@ export default function LeaderboardPage() {
     <tr
       key={entry.id}
       className={`transition-colors ${
-        pinned ? 'bg-amber-500/[0.06]' : `hover:bg-neutral-900/30 ${rank <= 3 ? 'bg-amber-500/[0.02]' : ''}`
+        pinned ? 'bg-brand-500/[0.06]' : `hover:bg-neutral-900/30 ${rank <= 3 ? 'bg-brand-500/[0.02]' : ''}`
       }`}
     >
       <td className="py-4 px-5 text-center">{renderRankBadge(rank)}</td>
       <td className="py-4 px-5 font-bold text-neutral-200">
         <Link
           href={`/profile/${entry.slug ?? entry.id}`}
-          className="flex items-center gap-2.5 hover:text-amber-400 transition-colors w-max group"
+          className="flex items-center gap-2.5 hover:text-brand-400 transition-colors w-max group"
         >
           <Avatar src={entry.avatarUrl} name={entry.name} size={28} />
           <span className="group-hover:underline underline-offset-2">{entry.name}</span>
-          {pinned && <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">(You)</span>}
+          {pinned && <span className="text-[10px] text-brand-500 font-bold uppercase tracking-wider">(You)</span>}
         </Link>
       </td>
       {activeTab === 'batch' ? (
@@ -190,7 +190,7 @@ export default function LeaderboardPage() {
         </>
       )}
       <td className="py-4 px-5 text-right font-mono font-bold text-sky-400">{entry.bestWpm} <span className="text-[11px] text-neutral-500">wpm</span></td>
-      <td className="py-4 px-5 text-right pr-7 font-bold font-mono text-amber-400">
+      <td className="py-4 px-5 text-right pr-7 font-bold font-mono text-brand-400">
         {entry.points} <span className="text-[11px] text-neutral-500 font-semibold uppercase">pts</span>
       </td>
     </tr>
@@ -204,7 +204,7 @@ export default function LeaderboardPage() {
 
         {/* ── Hero ── */}
         <section className="text-center flex flex-col items-center gap-2 mb-2">
-          <div className="bg-amber-500/10 text-amber-400 p-3 rounded-full border border-amber-500/20 mb-1">
+          <div className="bg-brand-500/10 text-brand-400 p-3 rounded-full border border-brand-500/20 mb-1">
             <Trophy size={30} />
           </div>
           <h1 className="text-3xl font-black text-neutral-100 tracking-tight">Institute Leaderboards</h1>
@@ -219,7 +219,7 @@ export default function LeaderboardPage() {
               onClick={() => setActiveTab('general')}
               className={`flex-1 px-4 py-2.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-2 ${
                 activeTab === 'general'
-                  ? 'bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/20'
+                  ? 'bg-brand-500 text-neutral-950 shadow-md shadow-brand-500/20'
                   : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
@@ -229,7 +229,7 @@ export default function LeaderboardPage() {
               onClick={() => setActiveTab('batch')}
               className={`flex-1 px-4 py-2.5 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-2 ${
                 activeTab === 'batch'
-                  ? 'bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/20'
+                  ? 'bg-brand-500 text-neutral-950 shadow-md shadow-brand-500/20'
                   : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
@@ -247,7 +247,7 @@ export default function LeaderboardPage() {
                   onClick={() => setLimit(n)}
                   className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
                     limit === n
-                      ? 'bg-amber-500 text-neutral-950'
+                      ? 'bg-brand-500 text-neutral-950'
                       : 'text-neutral-400 hover:text-neutral-200'
                   }`}
                 >
@@ -269,7 +269,7 @@ export default function LeaderboardPage() {
                     setSelectedBatch('');
                     setBatchData([]);
                   }}
-                  className="w-full appearance-none bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-xl py-2.5 pl-3 pr-8 text-xs font-semibold focus:outline-none focus:border-amber-500/40 transition-colors"
+                  className="w-full appearance-none bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-xl py-2.5 pl-3 pr-8 text-xs font-semibold focus:outline-none focus:border-brand-500/40 transition-colors"
                 >
                   <option value="">— Select Course —</option>
                   {courseList.map((c) => (
@@ -285,7 +285,7 @@ export default function LeaderboardPage() {
                   value={selectedBatch}
                   disabled={!selectedCourse}
                   onChange={(e) => setSelectedBatch(e.target.value)}
-                  className="w-full appearance-none bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-xl py-2.5 pl-3 pr-8 text-xs font-semibold focus:outline-none focus:border-amber-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full appearance-none bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-xl py-2.5 pl-3 pr-8 text-xs font-semibold focus:outline-none focus:border-brand-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <option value="">— Select Batch —</option>
                   {batchList.map((b: string) => (
@@ -311,7 +311,7 @@ export default function LeaderboardPage() {
                   key={entry.id}
                   className={`flex flex-col items-center gap-2 rounded-2xl border p-4 ${
                     isFirst
-                      ? 'bg-amber-500/10 border-amber-500/30 pb-6 -mt-4'
+                      ? 'bg-brand-500/10 border-brand-500/30 pb-6 -mt-4'
                       : 'bg-neutral-900/30 border-neutral-800'
                   }`}
                 >
@@ -320,10 +320,10 @@ export default function LeaderboardPage() {
                     <div
                       className={`absolute -bottom-1 -right-1 rounded-full flex items-center justify-center font-black font-mono border ${
                         rank === 1
-                          ? 'w-6 h-6 text-xs bg-amber-500 text-neutral-950 border-amber-400'
+                          ? 'w-6 h-6 text-xs bg-brand-500 text-neutral-950 border-brand-400'
                           : rank === 2
                           ? 'w-5 h-5 text-[10px] bg-neutral-300 text-neutral-900 border-neutral-200'
-                          : 'w-5 h-5 text-[10px] bg-amber-800 text-amber-100 border-amber-700'
+                          : 'w-5 h-5 text-[10px] bg-brand-800 text-brand-100 border-brand-700'
                       }`}
                     >
                       {rank}
@@ -331,11 +331,11 @@ export default function LeaderboardPage() {
                   </div>
                   <Link
                     href={`/profile/${entry.slug ?? entry.id}`}
-                    className="text-sm font-bold text-neutral-100 hover:text-amber-400 transition-colors text-center truncate max-w-full"
+                    className="text-sm font-bold text-neutral-100 hover:text-brand-400 transition-colors text-center truncate max-w-full"
                   >
                     {entry.name}
                   </Link>
-                  <span className="font-mono text-xs text-amber-400 font-bold">{entry.points} pts</span>
+                  <span className="font-mono text-xs text-brand-400 font-bold">{entry.points} pts</span>
                 </div>
               );
             })}
@@ -343,14 +343,14 @@ export default function LeaderboardPage() {
         )}
 
         {/* ── Rankings table ── */}
-        <section className="bg-neutral-900/10 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
+        <section className="bg-neutral-900/10 border border-neutral-800 rounded-lg overflow-hidden shadow-xl">
           {activeTab === 'batch' && !selectedBatch ? (
             <div className="p-14 text-center text-sm text-neutral-500 font-medium">
               Select a course and batch above to view the batch standings.
             </div>
           ) : activeTab === 'batch' && batchLoading ? (
             <div className="p-14 text-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-amber-400 border-r-2 border-transparent mx-auto" />
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-brand-400 border-r-2 border-transparent mx-auto" />
             </div>
           ) : listToRender.length === 0 ? (
             <div className="p-14 text-center text-sm text-neutral-500 font-medium">
@@ -388,7 +388,7 @@ export default function LeaderboardPage() {
                   )}
                 </tbody>
                 {showPinnedRow && myEntry && myRank !== null && (
-                  <tbody className="text-xs border-t-2 border-amber-500/30">
+                  <tbody className="text-xs border-t-2 border-brand-500/30">
                     {renderEntryRow(myEntry, myRank, true)}
                   </tbody>
                 )}

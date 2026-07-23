@@ -3,8 +3,9 @@
 import React, { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { PasswordInput } from '@/components/PasswordInput';
+import { Logo } from '@/components/Logo';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -48,12 +49,9 @@ function ResetPasswordForm() {
 
   return (
     <main className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4">
-      <Link href="/" className="flex items-center gap-2 mb-8 group">
-        <Sparkles className="text-amber-500 group-hover:rotate-12 transition-transform duration-300" size={32} />
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-transparent">
-          Typing Institute
-        </h1>
-      </Link>
+      <div className="mb-8">
+        <Logo size="large" />
+      </div>
 
       <div className="w-full max-w-md bg-surface/50 border border-neutral-800 p-8 rounded-2xl backdrop-blur-md shadow-2xl">
         {!token ? (
@@ -67,7 +65,7 @@ function ResetPasswordForm() {
             </p>
             <Link
               href="/forgot-password"
-              className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/10 mt-2"
+              className="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-neutral-950 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-brand-500/10 mt-2"
             >
               Request New Link
               <ArrowRight size={16} />
@@ -84,7 +82,7 @@ function ResetPasswordForm() {
             </p>
             <Link
               href="/login"
-              className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/10 mt-2"
+              className="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-neutral-950 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-brand-500/10 mt-2"
             >
               Go to Login
               <ArrowRight size={16} />
@@ -138,7 +136,7 @@ function ResetPasswordForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/10 active:scale-95 mt-2"
+                className="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-brand-500/10 active:scale-95 mt-2"
               >
                 {loading ? 'Updating...' : 'Update Password'}
                 {!loading && <ArrowRight size={16} />}

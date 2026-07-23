@@ -31,10 +31,10 @@ export function Avatar({ src, name, size = 40, className = '' }: AvatarProps) {
 
   return (
     <div
-      className={`rounded-full bg-gradient-to-br from-amber-500/30 to-amber-600/10 border border-amber-500/20 flex items-center justify-center shrink-0 ${className}`}
+      className={`rounded-full bg-gradient-to-br from-brand-500/30 to-brand-600/10 border border-brand-500/20 flex items-center justify-center shrink-0 ${className}`}
       style={{ width: size, height: size }}
     >
-      <span className="font-black text-amber-400" style={{ fontSize: size * 0.42 }}>
+      <span className="font-black text-brand-400" style={{ fontSize: size * 0.42 }}>
         {initial}
       </span>
     </div>

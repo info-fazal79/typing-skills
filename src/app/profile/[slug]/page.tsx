@@ -76,7 +76,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center gap-3">
-          <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-amber-400 border-r-2 border-transparent" />
+          <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-brand-400 border-r-2 border-transparent" />
           <span className="text-neutral-500 text-sm font-medium">Loading profile…</span>
         </div>
       </div>
@@ -90,7 +90,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4">
           <div className="text-6xl font-black text-neutral-700">404</div>
           <p className="text-neutral-400 text-sm">This profile doesn&apos;t exist or is not approved yet.</p>
-          <Link href="/leaderboard" className="text-amber-400 text-xs font-semibold hover:underline flex items-center gap-1">
+          <Link href="/leaderboard" className="text-brand-400 text-xs font-semibold hover:underline flex items-center gap-1">
             <ArrowLeft size={12} /> Back to Leaderboard
           </Link>
         </div>
@@ -105,7 +105,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
   const statCards = [
     { icon: <Zap size={18} className="text-sky-400" />, label: 'Best WPM', value: analytics.bestWpm, unit: 'wpm', color: 'sky' },
     { icon: <Target size={18} className="text-emerald-400" />, label: 'Avg Accuracy', value: `${analytics.avgAccuracy}%`, unit: '', color: 'emerald' },
-    { icon: <Trophy size={18} className="text-amber-400" />, label: 'Total Points', value: analytics.totalTests > 0 ? profile.points : 0, unit: 'pts', color: 'amber' },
+    { icon: <Trophy size={18} className="text-brand-400" />, label: 'Total Points', value: analytics.totalTests > 0 ? profile.points : 0, unit: 'pts', color: 'brand' },
     { icon: <Clock size={18} className="text-violet-400" />, label: 'Practice Time', value: analytics.totalMinutes, unit: 'min', color: 'violet' },
     { icon: <BookOpen size={18} className="text-rose-400" />, label: 'Total Sessions', value: analytics.totalTests, unit: 'tests', color: 'rose' },
     { icon: <Zap size={18} className="text-neutral-400" />, label: 'Avg WPM', value: analytics.avgWpm, unit: 'wpm', color: 'neutral' },
@@ -114,7 +114,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
   const colorMap: Record<string, string> = {
     sky: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
     emerald: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-    amber: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+    brand: 'bg-brand-500/10 border-brand-500/20 text-brand-400',
     violet: 'bg-violet-500/10 border-violet-500/20 text-violet-400',
     rose: 'bg-rose-500/10 border-rose-500/20 text-rose-400',
     neutral: 'bg-neutral-800/50 border-neutral-700/50 text-neutral-300',
@@ -130,7 +130,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
         {/* Back link */}
         <Link
           href="/leaderboard"
-          className="flex items-center gap-1.5 text-neutral-500 hover:text-amber-400 text-xs font-semibold transition-colors w-max"
+          className="flex items-center gap-1.5 text-neutral-500 hover:text-brand-400 text-xs font-semibold transition-colors w-max"
         >
           <ArrowLeft size={13} /> Back to Leaderboard
         </Link>
@@ -191,9 +191,9 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
           </div>
 
           {/* Points badge */}
-          <div className="flex flex-col items-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-5 py-3">
-            <span className="text-2xl font-black text-amber-400 font-mono">{profile.points}</span>
-            <span className="text-[11px] text-amber-500/70 font-bold uppercase tracking-wider">Points</span>
+          <div className="flex flex-col items-center bg-brand-500/10 border border-brand-500/20 rounded-xl px-5 py-3">
+            <span className="text-2xl font-black text-brand-400 font-mono">{profile.points}</span>
+            <span className="text-[11px] text-brand-500/70 font-bold uppercase tracking-wider">Points</span>
           </div>
         </section>
 
@@ -217,9 +217,9 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
         </section>
 
         {/* ── Recent Sessions ── */}
-        <section className="bg-neutral-900/10 border border-neutral-800 rounded-2xl overflow-hidden">
+        <section className="bg-neutral-900/10 border border-neutral-800 rounded-lg overflow-hidden">
           <div className="px-5 py-3.5 border-b border-neutral-800 flex items-center gap-2">
-            <BookOpen size={14} className="text-amber-500" />
+            <BookOpen size={14} className="text-brand-500" />
             <h2 className="text-xs font-bold text-neutral-200 uppercase tracking-wider">Recent Typing Sessions</h2>
             <span className="ml-auto text-[11px] text-neutral-500 font-mono">last {recentSessions.length} sessions</span>
           </div>
