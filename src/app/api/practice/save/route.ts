@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 import { applyInactivityPenalties } from '@/lib/penalties';
 import { isValidSessionStats } from '@/lib/validation';
+import { calculatePoints } from '@/lib/points';
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,9 +33,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid session stats' }, { status: 400 });
     }
 
-    // Calculate points: WPM * (Accuracy/100) * (Duration/30), capped at 80
-    const calculatedPoints = Math.round((wpm * (accuracy / 100)) * (duration / 30));
-    const pointsEarned = Math.max(0, Math.min(80, calculatedPoints));
+    const pointsEarned = calculatePoints(
+      language,
+      mode,
+      parseFloat(wpm),
+      parseFloat(accuracy),
+      parseInt(duration)
+    );
 
     const sessionId = crypto.randomUUID();
     const now = new Date().toISOString();
