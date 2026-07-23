@@ -4,6 +4,14 @@ import { signToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 import bcrypt from 'bcryptjs';
 
+// A syntactically real bcrypt hash (of a placeholder, never a real password)
+// to compare against when no user is found — computed once at module load,
+// not per-request. Without this, an unregistered email returned instantly
+// while a registered one with a wrong password paid bcrypt's ~100ms compare
+// cost, making the response time itself distinguish "this email exists"
+// from "it doesn't," despite the identical error message.
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password-timing-safety-placeholder', 10);
+
 export async function POST(req: NextRequest) {
   try {
     if (!checkRateLimit(req, 'login', 10, 15 * 60 * 1000)) {
@@ -32,16 +40,13 @@ export async function POST(req: NextRequest) {
       .eq('email', emailLower)
       .single();
 
-    if (error || !user) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
+    // Always run a bcrypt compare, even when the user doesn't exist, so the
+    // response time doesn't itself reveal whether the email is registered.
+    const isPasswordValid = user
+      ? await bcrypt.compare(password, user.password_hash)
+      : await bcrypt.compare(password, DUMMY_HASH);
 
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    if (!isPasswordValid) {
+    if (error || !user || !isPasswordValid) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
