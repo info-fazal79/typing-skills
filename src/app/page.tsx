@@ -111,13 +111,22 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="w-full border-t border-neutral-900 py-6 text-center text-neutral-600 text-[11px] mt-12 bg-neutral-950/20">
         &copy; {new Date().getFullYear()} Typing Institute. developed by{' '}
-        <a 
-          href="https://www.muhammadfazal.com" 
-          target="_blank" 
-          rel="noopener noreferrer" 
+        <a
+          href="https://www.muhammadfazal.com"
+          target="_blank"
+          rel="noopener noreferrer"
           className="underline hover:text-neutral-400 transition-colors"
         >
           Muhammad Fazal
+        </a>
+        {' '}and{' '}
+        <a
+          href="https://zihadhasan.web.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-neutral-400 transition-colors"
+        >
+          Zihad Hasan
         </a>
       </footer>
     </div>
