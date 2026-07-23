@@ -26,6 +26,15 @@ export async function POST(req: NextRequest) {
         .in('id', userIds);
       if (error) throw error;
     } else {
+      // Clean up dependent rows first, consistent with the single-user
+      // delete path in admin/students/route.ts — avoids orphaned data (or
+      // an FK-violation aborting the whole batch) if the DB has no ON
+      // DELETE CASCADE set up for these foreign keys. Bulk-reject only
+      // targets PENDING users today, who can't have practice/task rows yet,
+      // but this keeps the two delete paths in sync if that ever changes.
+      await supabase.from('practice_sessions').delete().in('user_id', userIds);
+      await supabase.from('task_submissions').delete().in('user_id', userIds);
+
       const { error } = await supabase
         .from('users')
         .delete()
