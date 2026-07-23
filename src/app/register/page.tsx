@@ -57,8 +57,15 @@ export default function RegisterPage() {
     // eslint-disable-next-line
     setRollNumber('');
     setAvailableRolls([]);
-    
+
     if (!batchName) return;
+
+    // Guards against switching batches quickly: if the user picks batch A
+    // then batch B before A's request resolves, A's response would
+    // otherwise land last (fetch order isn't guaranteed) and overwrite the
+    // dropdown with the wrong batch's roll numbers while `batchName` state
+    // already says B.
+    let cancelled = false;
 
     const fetchAvailableRolls = async () => {
       setFetchingRolls(true);
@@ -66,15 +73,17 @@ export default function RegisterPage() {
         const res = await fetch(`/api/auth/available-rolls?batchName=${encodeURIComponent(batchName)}`);
         if (res.ok) {
           const data = await res.json();
-          setAvailableRolls(data.availableRolls || []);
+          if (!cancelled) setAvailableRolls(data.availableRolls || []);
         }
       } catch (err) {
-        console.error("Failed to load available rolls", err);
+        if (!cancelled) console.error("Failed to load available rolls", err);
       } finally {
-        setFetchingRolls(false);
+        if (!cancelled) setFetchingRolls(false);
       }
     };
     fetchAvailableRolls();
+
+    return () => { cancelled = true; };
   }, [batchName]);
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -212,7 +212,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   const {
     typedText, isStarted, isCompleted,
     timeLeft, wpm, accuracy, timeElapsed,
-    handleInputChange, resetEngine, totalAttempts,
+    handleInputChange, resetEngine,
     correctChars, incorrectChars
   } = useTypingEngine(text, duration);
 
@@ -426,7 +426,11 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
     });
 
   const THREE_LINES = '6.6rem';
-  const rawWpmVal = timeElapsed > 0 ? Math.round((totalAttempts / 5) / (timeElapsed / 60)) : 0;
+  // Based on typedText.length (accepted characters), matching the chart's
+  // per-second rawWpm calculation below — totalAttempts also counts
+  // keystrokes rejected by the strict-space rule, which previously made this
+  // stat card disagree with the chart's final point for the same session.
+  const rawWpmVal = timeElapsed > 0 ? Math.round((typedText.length / 5) / (timeElapsed / 60)) : 0;
 
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col gap-6 select-none">

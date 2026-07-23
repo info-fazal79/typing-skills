@@ -55,6 +55,11 @@ export default function AdminPage() {
   // Load Admin Data
   const loadAdminData = useCallback(async () => {
     setLoading(true);
+    // Any reload (a filter changing, or refreshing after an action) can
+    // change which rows are even visible — clear the multi-select here
+    // instead of only after a successful bulk action, so it can't reference
+    // rows that silently scrolled out of the current filtered view.
+    setSelectedPending([]);
     try {
       // 1. Fetch Students
       const query = new URLSearchParams();
@@ -314,20 +319,31 @@ export default function AdminPage() {
         'Join Date'
       ];
 
+      // Escapes every text field consistently (previously only `name` had
+      // its quotes escaped) and neutralizes CSV formula injection — a cell
+      // starting with =, +, -, or @ can make spreadsheet software execute it
+      // as a formula when opened. `name` is fully user-controlled at
+      // registration, so this matters.
+      const csvField = (value: unknown): string => {
+        let str = String(value ?? '');
+        if (/^[=+\-@]/.test(str)) str = `'${str}`;
+        return `"${str.replace(/"/g, '""')}"`;
+      };
+
       const rows = report.map((r: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => [
-        `"${r.name.replace(/"/g, '""')}"`,
-        `"${r.email}"`,
-        `"${r.course}"`,
-        `"${r.batch}"`,
-        `"${r.rollNumber}"`,
-        `"${r.status}"`,
+        csvField(r.name),
+        csvField(r.email),
+        csvField(r.course),
+        csvField(r.batch),
+        csvField(r.rollNumber),
+        csvField(r.status),
         r.points,
         r.totalSessions,
         r.averageWpm,
         r.averageAccuracy,
         r.totalMinutesPracticed,
         r.taskCompletions,
-        `"${r.joinDate}"`
+        csvField(r.joinDate)
       ]);
 
       const csvContent = [headers.join(','), ...rows.map((row: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => row.join(','))].join('\n');
