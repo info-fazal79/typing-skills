@@ -9,7 +9,7 @@
 -- Run this once in the Supabase SQL editor for this project.
 
 create or replace function record_practice_session_stats(
-  p_user_id uuid,
+  p_user_id text,
   p_points_delta integer,
   p_wpm numeric
 ) returns table (
@@ -31,7 +31,7 @@ create or replace function record_practice_session_stats(
 $$ language sql;
 
 create or replace function award_task_points(
-  p_user_id uuid,
+  p_user_id text,
   p_points_delta integer
 ) returns table (
   points integer
@@ -45,7 +45,7 @@ create or replace function award_task_points(
 $$ language sql;
 
 create or replace function apply_penalty_deduction(
-  p_user_id uuid,
+  p_user_id text,
   p_deduction integer,
   p_checked_at timestamptz
 ) returns void as $$
