@@ -47,7 +47,7 @@ function ResetPasswordForm() {
   };
 
   return (
-    <main className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col justify-center items-center p-4">
+    <main className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4">
       <Link href="/" className="flex items-center gap-2 mb-8 group">
         <Sparkles className="text-amber-500 group-hover:rotate-12 transition-transform duration-300" size={32} />
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-transparent">
@@ -55,7 +55,7 @@ function ResetPasswordForm() {
         </h1>
       </Link>
 
-      <div className="w-full max-w-md bg-[#1d1e22]/50 border border-neutral-800 p-8 rounded-2xl backdrop-blur-md shadow-2xl">
+      <div className="w-full max-w-md bg-surface/50 border border-neutral-800 p-8 rounded-2xl backdrop-blur-md shadow-2xl">
         {!token ? (
           <div className="flex flex-col items-center text-center gap-4">
             <div className="bg-red-500/10 text-red-400 p-4 rounded-full border border-red-500/25">
@@ -138,7 +138,7 @@ function ResetPasswordForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/10 active:scale-98 mt-2"
+                className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/10 active:scale-95 mt-2"
               >
                 {loading ? 'Updating...' : 'Update Password'}
                 {!loading && <ArrowRight size={16} />}

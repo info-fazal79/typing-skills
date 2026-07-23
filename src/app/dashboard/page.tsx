@@ -67,7 +67,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center gap-3">
           <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-amber-400 border-r-2 border-transparent" />
@@ -79,7 +79,7 @@ export default function DashboardPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 max-w-lg mx-auto flex flex-col items-center justify-center gap-4 text-center px-4">
           <AlertCircle size={48} className="text-red-500" />
@@ -98,19 +98,19 @@ export default function DashboardPage() {
   // ── Pending approval screen ───────────────────────────────────────────────
   if (user?.status === 'PENDING') {
     return (
-      <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 max-w-xl mx-auto flex flex-col items-center justify-center text-center p-6 gap-6">
           <div className="bg-amber-500/10 text-amber-500 p-4 rounded-full border border-amber-500/20 animate-pulse">
             <Clock size={48} />
           </div>
           <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-extrabold text-neutral-100">Pending Approval</h1>
+            <h1 className="text-3xl font-black text-neutral-100">Pending Approval</h1>
             <p className="text-neutral-400 text-sm">
               Logged in as <strong className="text-neutral-300">{user.name}</strong>
             </p>
           </div>
-          <div className="bg-[#1d1e22]/50 border border-neutral-800 p-6 rounded-2xl text-xs leading-relaxed max-w-md text-neutral-400">
+          <div className="bg-surface/50 border border-neutral-800 p-6 rounded-2xl text-xs leading-relaxed max-w-md text-neutral-400">
             {user.courseName && (
               <ul className="flex flex-col gap-1 text-left list-disc list-inside">
                 <li>Course: <strong className="text-neutral-300">{user.courseName}</strong></li>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
   // ── Task practice mode ────────────────────────────────────────────────────
   if (activeTask) {
     return (
-      <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-12 flex flex-col gap-6">
           <button
@@ -139,10 +139,10 @@ export default function DashboardPage() {
           >
             <ArrowLeft size={16} /> Back to Dashboard
           </button>
-          <div className="bg-[#1d1e22]/40 border border-neutral-800 p-6 rounded-2xl flex flex-col gap-4">
+          <div className="bg-surface/40 border border-neutral-800 p-6 rounded-2xl flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-neutral-800 pb-3">
               <div>
-                <span className="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Task Assignment</span>
+                <span className="text-[11px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Task Assignment</span>
                 <h2 className="text-lg font-bold text-neutral-100 mt-1">{activeTask.title}</h2>
               </div>
               <div className="flex flex-wrap gap-4 text-xs font-semibold text-neutral-400">
@@ -196,7 +196,7 @@ export default function DashboardPage() {
           return (
             <g key={ratio} className="opacity-20">
               <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#646669" strokeWidth="1" strokeDasharray="3 3" />
-              <text x={padding - 5} y={y + 4} fill="#d1d0c5" fontSize="8" textAnchor="end" fontFamily="monospace">
+              <text x={padding - 5} y={y + 4} fill="var(--foreground)" fontSize="8" textAnchor="end" fontFamily="monospace">
                 {Math.round(maxWpm - ratio * wpmRange)}
               </text>
             </g>
@@ -204,7 +204,7 @@ export default function DashboardPage() {
         })}
         <path d={pathData} fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         {points.map((p: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, idx: number) => (
-          <circle key={idx} cx={p.x} cy={p.y} r="3.5" fill="#111215" stroke="#f59e0b" strokeWidth="2">
+          <circle key={idx} cx={p.x} cy={p.y} r="3.5" fill="var(--background)" stroke="#f59e0b" strokeWidth="2">
             <title>{`${p.wpm} WPM — ${p.accuracy}% Acc`}</title>
           </circle>
         ))}
@@ -222,7 +222,7 @@ export default function DashboardPage() {
   const trend = trendConfig[analytics.performanceTrend ?? 'new'];
 
   return (
-    <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <Navbar />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6 select-none">
@@ -230,7 +230,7 @@ export default function DashboardPage() {
         {/* ── Profile header ── */}
         <section className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-neutral-800/60 pb-6">
           <div>
-            <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+            <span className="text-[11px] font-bold text-amber-500 uppercase tracking-widest">
               {user?.role === 'STUDENT' ? 'Student Profile' : 'General Profile'}
             </span>
             <h1 className="text-2xl sm:text-3xl font-black text-neutral-100 mt-0.5">{user?.name}</h1>
@@ -252,7 +252,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 bg-neutral-950 px-4 py-2.5 rounded-xl border border-neutral-800">
               <Award className="text-amber-500" size={22} />
               <div className="flex flex-col">
-                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total Score</span>
+                <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">Total Score</span>
                 <span className="font-mono text-base font-bold text-neutral-200">{user.points} pts</span>
               </div>
             </div>
@@ -273,9 +273,9 @@ export default function DashboardPage() {
               suffix: ' min',
             },
           ].map(({ label, value, icon, suffix }) => (
-            <div key={label} className="p-5 rounded-2xl border border-neutral-800 bg-[#1d1e22]/20 flex flex-col gap-3">
+            <div key={label} className="p-5 rounded-2xl border border-neutral-800 bg-surface/20 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{label}</span>
+                <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest">{label}</span>
                 <span className="text-amber-500/70">{icon}</span>
               </div>
               <p className="font-mono text-3xl font-black text-neutral-100 leading-none">
@@ -295,10 +295,10 @@ export default function DashboardPage() {
 
           {/* Daily goal (students only) */}
           {user?.role === 'STUDENT' ? (
-            <div className="p-5 rounded-2xl border border-neutral-800 bg-[#1d1e22]/20 flex flex-col justify-between gap-3">
+            <div className="p-5 rounded-2xl border border-neutral-800 bg-surface/20 flex flex-col justify-between gap-3">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Daily Goal</span>
+                  <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Daily Goal</span>
                   <h3 className="text-base font-bold text-neutral-100 mt-0.5">
                     {targets.todayMinutesPracticed} / {targets.targetMinutes} mins
                   </h3>
@@ -314,14 +314,14 @@ export default function DashboardPage() {
                     style={{ width: `${targets.percentComplete}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[10px] font-bold text-neutral-500 uppercase tracking-wider mt-1.5">
+                <div className="flex justify-between text-[11px] font-bold text-neutral-500 uppercase tracking-wider mt-1.5">
                   <span>{targets.percentComplete}% completed</span>
                   <span>Penalty: −{targets.pointsDeduction} pts/day</span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="p-5 rounded-2xl border border-neutral-800 bg-[#1d1e22]/20 flex flex-col justify-center items-center gap-1 text-center">
+            <div className="p-5 rounded-2xl border border-neutral-800 bg-surface/20 flex flex-col justify-center items-center gap-1 text-center">
               <Clock size={20} className="text-amber-500/60" />
               <p className="text-xs text-neutral-500 font-semibold">Practice any time — no daily target for general users.</p>
             </div>
@@ -330,16 +330,16 @@ export default function DashboardPage() {
 
         {/* ── Charts ── */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-5 rounded-2xl border border-neutral-800 bg-[#1d1e22]/20 flex flex-col gap-3">
+          <div className="p-5 rounded-2xl border border-neutral-800 bg-surface/20 flex flex-col gap-3">
             <div className="flex items-center gap-2 border-b border-neutral-800 pb-2">
               <TrendingUp className="text-amber-500" size={16} />
               <h3 className="text-sm font-bold text-neutral-200">WPM Trend</h3>
             </div>
             {renderWpmChart()}
-            <p className="text-[10px] text-neutral-500 text-center uppercase tracking-wider font-semibold">Last 15 sessions</p>
+            <p className="text-[11px] text-neutral-500 text-center uppercase tracking-wider font-semibold">Last 15 sessions</p>
           </div>
 
-          <div className="p-5 rounded-2xl border border-neutral-800 bg-[#1d1e22]/20 flex flex-col gap-3">
+          <div className="p-5 rounded-2xl border border-neutral-800 bg-surface/20 flex flex-col gap-3">
             <div className="flex items-center gap-2 border-b border-neutral-800 pb-2">
               <BarChart3 className="text-amber-500" size={16} />
               <h3 className="text-sm font-bold text-neutral-200">Daily Practice (Mins)</h3>
@@ -361,12 +361,12 @@ export default function DashboardPage() {
                 );
               })}
             </div>
-            <p className="text-[10px] text-neutral-500 text-center uppercase tracking-wider font-semibold">Last 7 days</p>
+            <p className="text-[11px] text-neutral-500 text-center uppercase tracking-wider font-semibold">Last 7 days</p>
           </div>
         </section>
 
         {/* ── Recent Practice History ── */}
-        <section className="p-5 rounded-2xl border border-neutral-800 bg-[#1d1e22]/10 flex flex-col gap-4">
+        <section className="p-5 rounded-2xl border border-neutral-800 bg-surface/10 flex flex-col gap-4">
           <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
             <Clock className="text-amber-500" size={18} />
             <h2 className="text-base font-bold text-neutral-100">Recent Practice History</h2>
@@ -380,7 +380,7 @@ export default function DashboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="text-[10px] text-neutral-500 uppercase tracking-widest border-b border-neutral-800/80">
+                  <tr className="text-[11px] text-neutral-500 uppercase tracking-widest border-b border-neutral-800/80">
                     <th className="py-2.5 px-3">Date</th>
                     <th className="py-2.5 px-3">Time</th>
                     <th className="py-2.5 px-3 text-right">WPM</th>
@@ -409,7 +409,7 @@ export default function DashboardPage() {
                       <td className="py-3 px-3 text-right text-neutral-400">{s.duration}s</td>
                       <td className="py-3 px-3 text-neutral-400 capitalize">{s.language}</td>
                       <td className="py-3 px-3">
-                        <span className="bg-neutral-900 px-2 py-0.5 rounded text-[10px] font-semibold text-neutral-400 border border-neutral-800">
+                        <span className="bg-neutral-900 px-2 py-0.5 rounded text-[11px] font-semibold text-neutral-400 border border-neutral-800">
                           {s.mode}
                         </span>
                       </td>
@@ -424,7 +424,7 @@ export default function DashboardPage() {
 
         {/* ── Task Assignments (Students only) ── */}
         {user?.role === 'STUDENT' && (
-          <section className="p-5 rounded-2xl border border-neutral-800 bg-[#1d1e22]/10 flex flex-col gap-4">
+          <section className="p-5 rounded-2xl border border-neutral-800 bg-surface/10 flex flex-col gap-4">
             <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
               <BookOpen className="text-amber-500" size={18} />
               <h2 className="text-base font-bold text-neutral-100">Batch Typing Assignments</h2>
@@ -449,7 +449,7 @@ export default function DashboardPage() {
                         <h4 className="text-sm font-bold text-neutral-200">{task.title}</h4>
                         <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed truncate max-w-xs">{task.textContent}</p>
                       </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 ${
+                      <span className={`text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 ${
                         task.status === 'COMPLETED'
                           ? 'bg-emerald-500/10 text-emerald-400'
                           : task.status === 'MISSED'

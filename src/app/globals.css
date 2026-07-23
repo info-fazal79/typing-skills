@@ -4,11 +4,16 @@
 :root {
   --background: #111215;
   --foreground: #d1d0c5;
+  /* Elevated panel surface, one shade up from --background. Use with
+     Tailwind's opacity modifier (bg-surface/50, /40, /20, /10) instead of
+     hand-picking a translucency per section. */
+  --surface: #1d1e22;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-bengali: var(--font-noto-bengali), var(--font-geist-sans), sans-serif;
@@ -22,6 +27,21 @@ body {
      anywhere in the UI (mode labels, etc.), instead of an arbitrary OS font. */
   font-family: var(--font-geist-sans), var(--font-noto-bengali), sans-serif;
   overflow-x: hidden;
+}
+
+/* Numbers (WPM, points, accuracy, etc.) should line up digit-for-digit in
+   tables and stat cards instead of using proportional widths. */
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Custom Scrollbar for dark theme */

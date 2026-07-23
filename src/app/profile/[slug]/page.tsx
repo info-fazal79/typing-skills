@@ -69,7 +69,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center gap-3">
           <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-amber-400 border-r-2 border-transparent" />
@@ -81,7 +81,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
 
   if (notFound || !data) {
     return (
-      <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4">
           <div className="text-6xl font-black text-neutral-700">404</div>
@@ -117,7 +117,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
   };
 
   return (
-    <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <Navbar />
 
       {/* Match leaderboard's max-w-5xl width */}
@@ -144,7 +144,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
           <div className="flex flex-col gap-2 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-black text-neutral-100">{profile.name}</h1>
-              <span className={`text-[10px] px-2 py-0.5 rounded font-bold tracking-wider border ${
+              <span className={`text-[11px] px-2 py-0.5 rounded font-bold tracking-wider border ${
                 isStudent
                   ? 'bg-sky-500/10 text-sky-400 border-sky-500/20'
                   : 'bg-neutral-800/50 text-neutral-400 border-neutral-700/50'
@@ -182,7 +182,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
           {/* Points badge */}
           <div className="flex flex-col items-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-5 py-3">
             <span className="text-2xl font-black text-amber-400 font-mono">{profile.points}</span>
-            <span className="text-[10px] text-amber-500/70 font-bold uppercase tracking-wider">Points</span>
+            <span className="text-[11px] text-amber-500/70 font-bold uppercase tracking-wider">Points</span>
           </div>
         </section>
 
@@ -195,7 +195,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
             >
               <div className="flex items-center gap-2 opacity-80">
                 {card.icon}
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">{card.label}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider opacity-70">{card.label}</span>
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black font-mono">{card.value}</span>
@@ -210,7 +210,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
           <div className="px-5 py-3.5 border-b border-neutral-800 flex items-center gap-2">
             <BookOpen size={14} className="text-amber-500" />
             <h2 className="text-xs font-bold text-neutral-200 uppercase tracking-wider">Recent Typing Sessions</h2>
-            <span className="ml-auto text-[10px] text-neutral-500 font-mono">last {recentSessions.length} sessions</span>
+            <span className="ml-auto text-[11px] text-neutral-500 font-mono">last {recentSessions.length} sessions</span>
           </div>
 
           {recentSessions.length === 0 ? (
@@ -221,7 +221,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold border-b border-neutral-800/60 bg-neutral-950/10">
+                  <tr className="text-[11px] text-neutral-500 uppercase tracking-widest font-bold border-b border-neutral-800/60 bg-neutral-950/10">
                     <th className="py-3 px-5">Date</th>
                     <th className="py-3 px-5">Language / Mode</th>
                     <th className="py-3 px-5 text-right">WPM</th>
@@ -241,7 +241,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
                       <tr key={s.id} className="hover:bg-neutral-900/20 transition-colors">
                         <td className="py-3 px-5">
                           <div className="font-medium text-neutral-200">{dateStr}</div>
-                          <div className="text-[10px] text-neutral-500 font-mono">{timeStr}</div>
+                          <div className="text-[11px] text-neutral-500 font-mono">{timeStr}</div>
                         </td>
                         <td className="py-3 px-5">
                           <span className="text-neutral-300 font-semibold">{s.language}</span>
@@ -249,7 +249,7 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
                           <span className="text-neutral-500">{s.mode}</span>
                         </td>
                         <td className="py-3 px-5 text-right font-bold font-mono text-sky-400">
-                          {s.wpm} <span className="text-[10px] text-neutral-500">wpm</span>
+                          {s.wpm} <span className="text-[11px] text-neutral-500">wpm</span>
                         </td>
                         <td className="py-3 px-5 text-right font-mono text-emerald-400">
                           {s.accuracy}<span className="text-neutral-500">%</span>

@@ -97,7 +97,7 @@ export default function LeaderboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center gap-3">
           <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-amber-400 border-r-2 border-transparent" />
@@ -115,7 +115,7 @@ export default function LeaderboardPage() {
   const listToRender = (activeTab === 'general' ? generalList : batchData).slice(0, limit);
 
   return (
-    <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <Navbar />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col gap-6 select-none">
@@ -125,7 +125,7 @@ export default function LeaderboardPage() {
           <div className="bg-amber-500/10 text-amber-400 p-3 rounded-full border border-amber-500/20 mb-1">
             <Trophy size={30} />
           </div>
-          <h1 className="text-3xl font-extrabold text-neutral-100 tracking-tight">Institute Leaderboards</h1>
+          <h1 className="text-3xl font-black text-neutral-100 tracking-tight">Institute Leaderboards</h1>
           <p className="text-neutral-400 text-xs sm:text-sm">Rankings across all users and batches of the institute.</p>
         </section>
 
@@ -157,7 +157,7 @@ export default function LeaderboardPage() {
 
           {/* Show top N */}
           <div className="flex items-center gap-2 pt-1">
-            <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Show top</span>
+            <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">Show top</span>
             <div className="flex bg-neutral-950 p-1 rounded-lg gap-1">
               {[10, 20, 50, 100].map((n) => (
                 <button
@@ -236,7 +236,7 @@ export default function LeaderboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
+                  <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[11px] text-neutral-500 uppercase tracking-widest font-bold">
                     <th className="py-4 px-5 text-center w-14">Rank</th>
                     <th className="py-4 px-5">Name</th>
                     {activeTab === 'batch' ? (
@@ -275,7 +275,7 @@ export default function LeaderboardPage() {
                         <>
                           <td className="py-4 px-5 text-neutral-400">{entry.courseName || '—'}</td>
                           <td className="py-4 px-5">
-                            <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[10px] font-semibold text-neutral-300">
+                            <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[11px] font-semibold text-neutral-300">
                               {entry.batchName || '—'}
                             </span>
                           </td>
@@ -285,11 +285,11 @@ export default function LeaderboardPage() {
                         <>
                           <td className="py-4 px-5">
                             {entry.role === 'STUDENT' ? (
-                              <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide">
+                              <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide">
                                 Student
                               </span>
                             ) : (
-                              <span className="bg-neutral-800/50 text-neutral-400 border border-neutral-700/50 px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide">
+                              <span className="bg-neutral-800/50 text-neutral-400 border border-neutral-700/50 px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide">
                                 General
                               </span>
                             )}
@@ -297,7 +297,7 @@ export default function LeaderboardPage() {
                           <td className="py-4 px-5 text-neutral-400">{entry.role === 'STUDENT' ? (entry.courseName || '—') : '—'}</td>
                           <td className="py-4 px-5">
                             {entry.role === 'STUDENT' && entry.batchName ? (
-                              <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[10px] font-semibold text-neutral-300">
+                              <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[11px] font-semibold text-neutral-300">
                                 {entry.batchName}
                               </span>
                             ) : (
@@ -306,9 +306,9 @@ export default function LeaderboardPage() {
                           </td>
                         </>
                       )}
-                      <td className="py-4 px-5 text-right font-mono font-bold text-sky-400">{entry.bestWpm} <span className="text-[10px] text-neutral-500">wpm</span></td>
+                      <td className="py-4 px-5 text-right font-mono font-bold text-sky-400">{entry.bestWpm} <span className="text-[11px] text-neutral-500">wpm</span></td>
                       <td className="py-4 px-5 text-right pr-7 font-bold font-mono text-amber-400">
-                        {entry.points} <span className="text-[10px] text-neutral-500 font-semibold uppercase">pts</span>
+                        {entry.points} <span className="text-[11px] text-neutral-500 font-semibold uppercase">pts</span>
                       </td>
                     </tr>
                   ))}
