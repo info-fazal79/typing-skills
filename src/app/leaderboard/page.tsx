@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { Trophy, Award, Users, Crown, ChevronDown } from 'lucide-react';
@@ -16,6 +16,12 @@ export default function LeaderboardPage() {
   const [selectedBatch, setSelectedBatch] = useState('');
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchData, setBatchData] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
+  // The initial /api/leaderboard call already returns the batch leaderboard
+  // for a student's auto-selected batch (json.batch). Setting selectedBatch
+  // below re-triggers the batch-fetch effect right after — this flag skips
+  // that one redundant fetch instead of hitting the API a second time for
+  // data we already have.
+  const skipNextBatchFetchRef = useRef(false);
 
   // ── Initial fetch ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -27,6 +33,7 @@ export default function LeaderboardPage() {
 
         // Auto-select the user's batch if they're a student
         if (json.selectedBatch) {
+          skipNextBatchFetchRef.current = true;
           setSelectedBatch(json.selectedBatch);
           setBatchData(json.batch ?? []);
 
@@ -53,6 +60,10 @@ export default function LeaderboardPage() {
     if (!selectedBatch) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setBatchData([]);
+      return;
+    }
+    if (skipNextBatchFetchRef.current) {
+      skipNextBatchFetchRef.current = false;
       return;
     }
     const fetchBatch = async () => {
