@@ -55,7 +55,7 @@ export function Navbar() {
 
   if (loading) {
     return (
-      <header className="w-full border-b border-neutral-800 bg-[#111215]/80 backdrop-blur-md h-16 flex items-center justify-between px-6 sticky top-0 z-40">
+      <header className="w-full border-b border-neutral-800 bg-background/80 backdrop-blur-md h-16 flex items-center justify-between px-6 sticky top-0 z-40">
         <div className="h-6 w-32 bg-neutral-800 animate-pulse rounded-md"></div>
         <div className="h-8 w-24 bg-neutral-800 animate-pulse rounded-md"></div>
       </header>
@@ -63,7 +63,7 @@ export function Navbar() {
   }
 
   return (
-    <header className="w-full border-b border-neutral-950 bg-[#111215]/75 backdrop-blur-md sticky top-0 z-40 transition-all select-none">
+    <header className="w-full border-b border-neutral-950 bg-background/75 backdrop-blur-md sticky top-0 z-40 transition-all select-none">
       <div className="max-w-6xl mx-auto h-16 flex items-center justify-between px-4 sm:px-6">
         {/* Left Side Logo */}
         <Link href="/" className="flex items-center gap-2 group">
@@ -139,7 +139,7 @@ export function Navbar() {
               <div className="hidden md:flex flex-col text-right">
                 <span className="text-xs font-bold text-neutral-200 leading-none">{user.name}</span>
                 {user.role === 'ADMIN' && (
-                  <span className="text-[10px] text-amber-500/80 uppercase tracking-wider font-semibold mt-0.5">Administrator</span>
+                  <span className="text-[11px] text-amber-500/80 uppercase tracking-wider font-semibold mt-0.5">Administrator</span>
                 )}
               </div>
 

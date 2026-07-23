@@ -56,7 +56,7 @@ function LoginForm() {
   };
 
   return (
-    <main className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col justify-center items-center p-4">
+    <main className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4">
       {/* Title */}
       <Link href="/" className="flex items-center gap-2 mb-8 group">
         <Sparkles className="text-amber-500 group-hover:rotate-12 transition-transform duration-300" size={32} />
@@ -65,7 +65,7 @@ function LoginForm() {
         </h1>
       </Link>
 
-      <div className="w-full max-w-md bg-[#1d1e22]/50 border border-neutral-800 p-8 rounded-2xl backdrop-blur-md shadow-2xl">
+      <div className="w-full max-w-md bg-surface/50 border border-neutral-800 p-8 rounded-2xl backdrop-blur-md shadow-2xl">
         <h2 className="text-xl font-bold text-neutral-100 mb-6">Welcome Back</h2>
         
         {error && (
@@ -86,7 +86,7 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#111215] border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm"
               />
             </div>
           </div>
@@ -110,7 +110,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/10 active:scale-98 mt-2"
+            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/10 active:scale-95 mt-2"
           >
             {loading ? 'Logging in...' : 'Log In'}
             {!loading && <ArrowRight size={16} />}

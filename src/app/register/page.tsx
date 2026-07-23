@@ -113,8 +113,8 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <main className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col justify-center items-center p-4">
-        <div className="w-full max-w-md bg-[#1d1e22]/50 border border-neutral-800 p-8 rounded-2xl text-center flex flex-col items-center gap-6 shadow-2xl">
+      <main className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md bg-surface/50 border border-neutral-800 p-8 rounded-2xl text-center flex flex-col items-center gap-6 shadow-2xl">
           <div className="bg-emerald-500/10 text-emerald-400 p-4 rounded-full border border-emerald-500/25">
             <CheckCircle2 size={48} />
           </div>
@@ -151,7 +151,7 @@ export default function RegisterPage() {
   const availableBatches = (metadata && courseName && metadata.courses[courseName]) || [];
 
   return (
-    <main className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col justify-center items-center p-4 py-12">
+    <main className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4 py-12">
       {/* Title */}
       <Link href="/" className="flex items-center gap-2 mb-8 group">
         <Sparkles className="text-amber-500 group-hover:rotate-12 transition-transform duration-300" size={32} />
@@ -160,7 +160,7 @@ export default function RegisterPage() {
         </h1>
       </Link>
 
-      <div className="w-full max-w-lg bg-[#1d1e22]/50 border border-neutral-800 p-8 rounded-2xl backdrop-blur-md shadow-2xl">
+      <div className="w-full max-w-lg bg-surface/50 border border-neutral-800 p-8 rounded-2xl backdrop-blur-md shadow-2xl">
         
         {/* Registration Tabs */}
         <div className="flex bg-neutral-950 p-1 rounded-xl mb-6 border border-neutral-800">
@@ -219,7 +219,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#111215] border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm"
               />
             </div>
           </div>
@@ -235,7 +235,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="john.doe@example.com"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#111215] border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm"
               />
             </div>
           </div>
@@ -270,7 +270,7 @@ export default function RegisterPage() {
                     required
                     value={courseName}
                     onChange={(e) => setCourseName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#111215] border border-neutral-800 text-neutral-100 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
                   >
                     <option value="">-- Select a Course --</option>
                     {metadata?.courses && Object.keys(metadata.courses).map(c => (
@@ -289,7 +289,7 @@ export default function RegisterPage() {
                     value={batchName}
                     onChange={(e) => setBatchName(e.target.value)}
                     disabled={!courseName}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#111215] border border-neutral-800 text-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
                   >
                     <option value="">-- Select Batch --</option>
                     {availableBatches.map(b => (
@@ -308,7 +308,7 @@ export default function RegisterPage() {
                     value={rollNumber}
                     onChange={(e) => setRollNumber(e.target.value)}
                     disabled={!batchName || fetchingRolls}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#111215] border border-neutral-800 text-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
                   >
                     <option value="">
                       {!batchName ? '-- Select Batch First --' : fetchingRolls ? 'Loading...' : '-- Select Roll --'}
@@ -327,7 +327,7 @@ export default function RegisterPage() {
             disabled={loading}
             className={`sm:col-span-2 flex items-center justify-center gap-2 ${
               activeTab === 'STUDENT' ? 'bg-amber-500 hover:bg-amber-400' : 'bg-emerald-500 hover:bg-emerald-400'
-            } disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg active:scale-98 mt-2`}
+            } disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg active:scale-95 mt-2`}
           >
             {loading ? 'Submitting Registration...' : 'Register'}
             {!loading && <ArrowRight size={16} />}

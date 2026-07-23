@@ -42,7 +42,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <Navbar />
 
       {/* Hero Header */}
@@ -63,7 +63,7 @@ export default function LandingPage() {
         </section>
 
         {/* Typing Game Container */}
-        <section className="bg-[#1d1e22]/20 border border-neutral-800/60 p-6 sm:p-8 rounded-3xl shadow-xl">
+        <section className="bg-surface/20 border border-neutral-800/60 p-6 sm:p-8 rounded-3xl shadow-xl">
           <TypingPractice onSessionComplete={handleSessionComplete} />
           
           {saveStatus && (
@@ -76,7 +76,7 @@ export default function LandingPage() {
 
         {/* Informational Cards */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-          <div className="bg-[#1d1e22]/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col gap-3">
+          <div className="bg-surface/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col gap-3">
             <div className="text-amber-500 bg-amber-500/10 p-2.5 rounded-lg w-max border border-amber-500/20">
               <Languages size={20} />
             </div>
@@ -86,7 +86,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="bg-[#1d1e22]/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col gap-3">
+          <div className="bg-surface/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col gap-3">
             <div className="text-amber-500 bg-amber-500/10 p-2.5 rounded-lg w-max border border-amber-500/20">
               <Star size={20} />
             </div>
@@ -96,7 +96,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="bg-[#1d1e22]/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col gap-3">
+          <div className="bg-surface/30 border border-neutral-800/50 p-6 rounded-2xl flex flex-col gap-3">
             <div className="text-amber-500 bg-amber-500/10 p-2.5 rounded-lg w-max border border-amber-500/20">
               <Trophy size={20} />
             </div>
@@ -109,7 +109,7 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full border-t border-neutral-900 py-6 text-center text-neutral-600 text-[10px] mt-12 bg-neutral-950/20">
+      <footer className="w-full border-t border-neutral-900 py-6 text-center text-neutral-600 text-[11px] mt-12 bg-neutral-950/20">
         &copy; {new Date().getFullYear()} Typing Institute. developed by{' '}
         <a 
           href="https://www.muhammadfazal.com" 

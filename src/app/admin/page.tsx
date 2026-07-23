@@ -349,7 +349,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#111215] text-[#d1d0c5] flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <Navbar />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6 select-none">
@@ -445,7 +445,7 @@ export default function AdminPage() {
                     )}
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
+                        <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[11px] text-neutral-500 uppercase tracking-widest font-bold">
                           <th className="py-4 px-6 w-10">
                             <input
                               type="checkbox"
@@ -496,14 +496,14 @@ export default function AdminPage() {
                             <td className="py-4 px-6 text-right pr-6 flex gap-2 justify-end">
                               <button
                                 onClick={() => handleUpdateStatus(student.id, 'APPROVED')}
-                                className="flex items-center gap-1 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-neutral-950 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all active:scale-95"
+                                className="flex items-center gap-1 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-neutral-950 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-95"
                               >
                                 <CheckCircle2 size={12} />
                                 Approve
                               </button>
                               <button
                                 onClick={() => handleUpdateStatus(student.id, 'REJECTED')}
-                                className="flex items-center gap-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-neutral-950 border border-red-500/20 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all active:scale-95"
+                                className="flex items-center gap-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-neutral-950 border border-red-500/20 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all active:scale-95"
                               >
                                 <XCircle size={12} />
                                 Reject
@@ -524,7 +524,7 @@ export default function AdminPage() {
                 {/* Search & Filter bar */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-neutral-900/40 p-4 rounded-xl border border-neutral-800/80 text-xs">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Course Filter</label>
+                    <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Course Filter</label>
                     <input
                       type="text"
                       value={filterCourse}
@@ -535,7 +535,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Batch Filter</label>
+                    <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Batch Filter</label>
                     <input
                       type="text"
                       value={filterBatch}
@@ -546,7 +546,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Roll Filter</label>
+                    <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Roll Filter</label>
                     <input
                       type="text"
                       value={filterRoll}
@@ -557,7 +557,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Status Filter</label>
+                    <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Status Filter</label>
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
@@ -572,7 +572,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Account Type</label>
+                    <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Account Type</label>
                     <select
                       value={filterRole}
                       onChange={(e) => setFilterRole(e.target.value)}
@@ -595,7 +595,7 @@ export default function AdminPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse text-xs">
                         <thead>
-                          <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
+                          <tr className="border-b border-neutral-800/80 bg-neutral-950/20 text-[11px] text-neutral-500 uppercase tracking-widest font-bold">
                             <th className="py-4 px-6">Name</th>
                             <th className="py-4 px-6">Course / Batch / Roll</th>
                             <th className="py-4 px-6">Status</th>
@@ -617,7 +617,7 @@ export default function AdminPage() {
                                     {student.role === 'STUDENT' ? 'Student' : 'General'}
                                   </span>
                                 </div>
-                                <div className="text-[10px] text-neutral-500 mt-0.5">{student.email}</div>
+                                <div className="text-[11px] text-neutral-500 mt-0.5">{student.email}</div>
                               </td>
                               <td className="py-4 px-6 text-neutral-400">
                                 {student.role === 'STUDENT' ? (
@@ -659,7 +659,7 @@ export default function AdminPage() {
                                     </button>
                                   )}
                                   {student.status === 'PENDING' && (
-                                    <span className="text-[10px] text-neutral-500 italic">Approve in pending tab</span>
+                                    <span className="text-[11px] text-neutral-500 italic">Approve in pending tab</span>
                                   )}
                                   {student.status === 'REJECTED' && (
                                     <button
@@ -700,7 +700,7 @@ export default function AdminPage() {
 
                   <form onSubmit={handleCreateTask} className="flex flex-col gap-4 text-xs">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Assignment Title</label>
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Assignment Title</label>
                       <input
                         type="text"
                         required
@@ -712,7 +712,7 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Language Mode</label>
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Language Mode</label>
                       <select
                         value={taskLanguage}
                         onChange={(e) => setTaskLanguage(e.target.value)}
@@ -725,7 +725,7 @@ export default function AdminPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Min Speed (WPM)</label>
+                        <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Min Speed (WPM)</label>
                         <input
                           type="number"
                           required
@@ -736,7 +736,7 @@ export default function AdminPage() {
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Min Accuracy (%)</label>
+                        <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Min Accuracy (%)</label>
                         <input
                           type="number"
                           required
@@ -748,7 +748,7 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Target Batch(es) (comma separated)</label>
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Target Batch(es) (comma separated)</label>
                       <input
                         type="text"
                         required
@@ -761,7 +761,7 @@ export default function AdminPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Points Rewardable</label>
+                        <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Points Rewardable</label>
                         <input
                           type="number"
                           value={taskPoints}
@@ -771,7 +771,7 @@ export default function AdminPage() {
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Deadline</label>
+                        <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Deadline</label>
                         <input
                           type="datetime-local"
                           required
@@ -783,7 +783,7 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Typing Text Content</label>
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Typing Text Content</label>
                       <textarea
                         required
                         value={taskContent}
@@ -817,7 +817,7 @@ export default function AdminPage() {
                   ) : (
                     <div className="flex flex-col gap-3">
                       {tasks.map((task) => (
-                        <div key={task.id} className="p-4 rounded-xl border border-neutral-800 bg-[#1d1e22]/10 flex flex-col gap-3">
+                        <div key={task.id} className="p-4 rounded-xl border border-neutral-800 bg-surface/10 flex flex-col gap-3">
                           <div className="flex justify-between items-start">
                             <div>
                               <h4 className="text-sm font-bold text-neutral-200">{task.title}</h4>
@@ -837,7 +837,7 @@ export default function AdminPage() {
                               <span>Reward: <strong className="text-neutral-300 font-mono">+{task.pointsAwardable} pts</strong></span>
                               <span>Completions: <strong className="text-amber-400 font-mono font-bold">{task.completionsCount}</strong></span>
                             </div>
-                            <div className="text-[10px] text-neutral-400 font-medium">
+                            <div className="text-[11px] text-neutral-400 font-medium">
                               Deadline: {new Date(task.deadline).toLocaleString()}
                             </div>
                           </div>
@@ -861,7 +861,7 @@ export default function AdminPage() {
 
                   <form onSubmit={handleUpsertTarget} className="flex flex-col gap-4 text-xs">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Batch Name</label>
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Batch Name</label>
                       <input
                         type="text"
                         required
@@ -873,7 +873,7 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Daily Target (Minutes)</label>
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Daily Target (Minutes)</label>
                       <input
                         type="number"
                         required
@@ -884,7 +884,7 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Daily Inactivity Penalty (Points)</label>
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Daily Inactivity Penalty (Points)</label>
                       <input
                         type="number"
                         required
@@ -919,11 +919,11 @@ export default function AdminPage() {
                       {targets.map((t) => (
                         <div 
                           key={t.id} 
-                          className="p-4 rounded-xl border border-neutral-800 bg-[#1d1e22]/10 flex flex-col justify-between gap-2"
+                          className="p-4 rounded-xl border border-neutral-800 bg-surface/10 flex flex-col justify-between gap-2"
                         >
                           <div className="flex justify-between items-start border-b border-neutral-900 pb-2">
                             <span className="font-bold text-sm text-neutral-200 font-mono">{t.batchName}</span>
-                            <span className="text-[10px] bg-red-500/15 text-red-400 border border-red-500/10 px-1.5 py-0.5 rounded font-bold font-mono">
+                            <span className="text-[11px] bg-red-500/15 text-red-400 border border-red-500/10 px-1.5 py-0.5 rounded font-bold font-mono">
                               -{t.pointsDeduction} pts/day
                             </span>
                           </div>
@@ -980,7 +980,7 @@ export default function AdminPage() {
 
                   {/* Add Batch to Course */}
                   <div className="flex flex-col gap-2 p-4 border border-neutral-800 rounded-xl bg-neutral-950/50">
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Add Batch to Course</span>
+                    <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Add Batch to Course</span>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <select
                         value={selectedCourseForBatch}
@@ -1082,7 +1082,7 @@ export default function AdminPage() {
                   
                   {/* Select Batch for Rolls */}
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Select Batch to Manage Rolls</span>
+                    <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Select Batch to Manage Rolls</span>
                     <select
                       value={selectedBatchForRoll}
                       onChange={(e) => setSelectedBatchForRoll(e.target.value)}
@@ -1132,7 +1132,7 @@ export default function AdminPage() {
                       </div>
 
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold">Total Roll Numbers: {(metadata.rollNumbersByBatch[selectedBatchForRoll] || []).length}</span>
+                        <span className="text-[11px] text-neutral-500 uppercase tracking-wider font-bold">Total Roll Numbers: {(metadata.rollNumbersByBatch[selectedBatchForRoll] || []).length}</span>
                         <button
                           onClick={() => {
                             setConfirmDialog({
@@ -1150,7 +1150,7 @@ export default function AdminPage() {
                               },
                             });
                           }}
-                          className="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider"
+                          className="text-[11px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider"
                         >
                           Clear All
                         </button>
