@@ -56,6 +56,12 @@ export function Navbar() {
     }
   };
 
+  // Now rendered once in the root layout (see layout.tsx) instead of once
+  // per page, so it has to opt itself out on the standalone, distraction-free
+  // auth screens that were never designed to sit under a top nav.
+  const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
+  if (isAuthPage) return null;
+
   if (loading) {
     return (
       <header className="w-full border-b border-neutral-800 bg-background/80 backdrop-blur-md h-16 flex items-center justify-between px-6 sticky top-0 z-40">

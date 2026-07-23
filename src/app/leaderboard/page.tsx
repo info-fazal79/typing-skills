@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Navbar } from '@/components/Navbar';
 import { Avatar } from '@/components/Avatar';
 import { Trophy, Award, Users, Crown, ChevronDown } from 'lucide-react';
 
@@ -110,7 +109,6 @@ export default function LeaderboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Navbar />
         <div className="flex-1 flex items-center justify-center gap-3">
           <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-brand-400 border-r-2 border-transparent" />
           <span className="text-neutral-500 text-sm font-medium">Loading leaderboards…</span>
@@ -198,7 +196,6 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <Navbar />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col gap-6 select-none">
 

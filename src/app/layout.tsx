@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_Bengali } from "next/font/google";
 import { ToastProvider } from "@/components/ToastProvider";
+import { Navbar } from "@/components/Navbar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,7 +39,16 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${notoSansBengali.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {/* Hoisted here (not per-page) so it persists across client-side
+              navigations instead of unmounting/remounting on every route
+              change — previously every page rendered its own <Navbar />,
+              which meant the nav's own /api/auth/me fetch + loading skeleton
+              re-ran on every single navigation, visibly flashing and making
+              the whole app feel like it was doing a full page reload. */}
+          <Navbar />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

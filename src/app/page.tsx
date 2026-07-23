@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Navbar } from '@/components/Navbar';
 import { TypingPractice } from '@/components/TypingPractice';
 import { Keyboard, BookOpen } from 'lucide-react';
 
@@ -43,7 +42,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <Navbar />
 
       {/* Hero Header */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-12 flex flex-col gap-10">

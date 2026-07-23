@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Navbar } from '@/components/Navbar';
 import { TypingPractice } from '@/components/TypingPractice';
 import { AvatarUpload } from '@/components/AvatarUpload';
 import {
@@ -69,7 +68,6 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Navbar />
         <div className="flex-1 flex items-center justify-center gap-3">
           <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-brand-400 border-r-2 border-transparent" />
           <span className="text-neutral-500 text-sm font-medium">Loading your dashboard…</span>
@@ -81,7 +79,6 @@ export default function DashboardPage() {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Navbar />
         <div className="flex-1 max-w-lg mx-auto flex flex-col items-center justify-center gap-4 text-center px-4">
           <AlertCircle size={48} className="text-red-500" />
           <h2 className="text-2xl font-bold text-neutral-100">Failed to Load Dashboard</h2>
@@ -100,7 +97,6 @@ export default function DashboardPage() {
   if (user?.status === 'PENDING') {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Navbar />
         <div className="flex-1 max-w-xl mx-auto flex flex-col items-center justify-center text-center p-6 gap-6">
           <div className="bg-brand-500/10 text-brand-500 p-4 rounded-full border border-brand-500/20 animate-pulse">
             <Clock size={48} />
@@ -132,7 +128,6 @@ export default function DashboardPage() {
   if (activeTask) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Navbar />
         <div className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-12 flex flex-col gap-6">
           <button
             onClick={() => { setActiveTask(null); setTaskSubmitStatus(''); setTaskSubmitError(''); }}
@@ -224,7 +219,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <Navbar />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6 select-none">
 
