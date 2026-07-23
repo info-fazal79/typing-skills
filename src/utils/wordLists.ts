@@ -8,27 +8,63 @@ export const englishWords = [
   'give', 'day', 'most', 'us'
 ];
 
-export const englishNumbers = [
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '100', '2026', '50', '25', '12', '99', '500', '1000'
-];
-
 export const englishPunctuationSymbols = ['.', ',', '?', '!', ';', ':', '-', '"', "'"];
 
-// Bangla word lists
-export const banglaVowels = [
-  'ওই', 'আই', 'আউ', 'উই', 'ও', 'ঐ', 'ঔ', 'আও', 'ইউ', 'অ্যাঁ', 'উয়া', 'আইউ', 'ওআ', 'আআ', 'ইই'
-];
+// Generates a single alphanumeric token like "b109", "he3a", "D3" — the
+// Numbers category is priced well above Standard specifically because it's
+// meant to mix letters and digits within one token (per the point-system
+// spec), not alternate between whole plain words and whole plain numbers.
+const ALPHABET = 'abcdefghijklmnopqrstuvwxyz';
 
+function randomAlphaNumericToken(): string {
+  const letterCount = 1 + Math.floor(Math.random() * 3); // 1-3 letters
+  const digitCount = 1 + Math.floor(Math.random() * 3); // 1-3 digits
+
+  let letterPart = '';
+  for (let i = 0; i < letterCount; i++) {
+    letterPart += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+  }
+  if (Math.random() > 0.7) {
+    letterPart = letterPart.charAt(0).toUpperCase() + letterPart.slice(1);
+  }
+
+  let digitPart = '';
+  for (let i = 0; i < digitCount; i++) {
+    digitPart += Math.floor(Math.random() * 10);
+  }
+
+  return Math.random() > 0.5 ? `${letterPart}${digitPart}` : `${digitPart}${letterPart}`;
+}
+
+// ── Bangla script content ───────────────────────────────────────────────────
+// Vowels/Consonants/Modifiers are meant to isolate one linguistic unit at a
+// time (per the point-system spec: "Individual vowel characters", "Individual
+// consonant characters", "Bengali vowel signs/modifiers") — not whole common
+// words, which is what these three previously contained.
+
+// The 11 standard Bangla vowel letters (স্বরবর্ণ).
+export const banglaVowels = ['অ', 'আ', 'ই', 'ঈ', 'উ', 'ঊ', 'ঋ', 'এ', 'ঐ', 'ও', 'ঔ'];
+
+// The standard Bangla consonant letters (ব্যঞ্জনবর্ণ), including the nukta forms.
 export const banglaConsonants = [
-  'কর', 'বল', 'চল', 'কলম', 'ভর', 'পথ', 'বন', 'দশ', 'নখ', 'ফল', 'জল', 'মদ', 'ঘর', 'খল', 'চড়',
-  'ধড়', 'নল', 'বই', 'মই', 'ভয়', 'জয়', 'লয়', 'খড়', 'দল', 'জগ', 'কম', 'গম', 'ঢক', 'বকবক', 'কলকল'
+  'ক', 'খ', 'গ', 'ঘ', 'ঙ', 'চ', 'ছ', 'জ', 'ঝ', 'ঞ',
+  'ট', 'ঠ', 'ড', 'ঢ', 'ণ', 'ত', 'থ', 'দ', 'ধ', 'ন',
+  'প', 'ফ', 'ব', 'ভ', 'ম', 'য', 'র', 'ল', 'শ', 'ষ',
+  'স', 'হ', 'ড়', 'ঢ়', 'য়',
 ];
 
-export const banglaModifiers = [
-  'বাবা', 'মা', 'তুমি', 'আমি', 'গান', 'পাখি', 'নদী', 'ফুল', 'সূর্য', 'মেয়ে', 'ছেলে', 'লেখা',
-  'পড়া', 'খেলনা', 'বাগান', 'আকাশ', 'বাতাস', 'মাটি', 'পানি', 'ছবি', 'খাতা', 'ছুটি', 'বিড়াল', 'কুকুর',
-  'ভাত', 'ডাল', 'মাছ', 'সকাল', 'দুপুর', 'বিকাল', 'রাত', 'তারা', 'চাঁদ', 'আলো', 'ছায়া', 'গাছ'
+// Vowel signs (কার-চিহ্ন) only exist attached to a base consonant — a bare kar
+// sign can't be typed on its own — so this generates every base-consonant +
+// kar-sign combination (e.g. ক + া = কা) rather than hardcoding a small,
+// error-prone list by hand.
+const KAR_SIGNS = ['া', 'ি', 'ী', 'ু', 'ূ', 'ৃ', 'ে', 'ৈ', 'ো', 'ৌ'];
+const MODIFIER_BASE_CONSONANTS = [
+  'ক', 'খ', 'গ', 'চ', 'জ', 'ট', 'ণ', 'ত', 'দ', 'ন',
+  'প', 'ব', 'ম', 'য', 'র', 'ল', 'শ', 'স', 'হ',
 ];
+export const banglaModifiers = MODIFIER_BASE_CONSONANTS.flatMap((consonant) =>
+  KAR_SIGNS.map((kar) => consonant + kar)
+);
 
 export const banglaConjuncts = [
   'শিক্ষা', 'জ্ঞান', 'বিজ্ঞান', 'ইচ্ছা', 'কষ্ট', 'স্পষ্ট', 'উত্তপ্ত', 'বন্ধু', 'অন্ধকার', 'কল্পনা',
@@ -51,19 +87,12 @@ export function generatePracticeText(language: string, mode: string, wordCount: 
   if (language.toUpperCase() === 'ENGLISH') {
     if (mode === 'numbers') {
       for (let i = 0; i < wordCount; i++) {
-        // 50% chance of a number, 50% chance of standard word
-        if (Math.random() > 0.5) {
-          const randNum = englishNumbers[Math.floor(Math.random() * englishNumbers.length)];
-          words.push(randNum);
-        } else {
-          const randWord = englishWords[Math.floor(Math.random() * englishWords.length)];
-          words.push(randWord);
-        }
+        words.push(randomAlphaNumericToken());
       }
     } else if (mode === 'punctuation') {
       for (let i = 0; i < wordCount; i++) {
         let word = englishWords[Math.floor(Math.random() * englishWords.length)];
-        
+
         // 15% chance to capitalize word
         if (Math.random() > 0.85) {
           word = word.charAt(0).toUpperCase() + word.slice(1);
