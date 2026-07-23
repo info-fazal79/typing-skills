@@ -100,15 +100,15 @@ export async function POST(req: NextRequest) {
       });
 
       if (pointsToAward > 0) {
-        const { data: currentUser } = await supabase
-          .from('users')
-          .select('points')
-          .eq('id', user.id)
-          .single();
-
-        const newPoints = (currentUser?.points ?? 0) + pointsToAward;
-        await supabase.from('users').update({ points: newPoints, updated_at: now.toISOString() }).eq('id', user.id);
-        updatedUserPoints = newPoints;
+        // Atomic increment — avoids a lost update if this user has another
+        // request (a practice save, another task) awarding points at the
+        // same moment.
+        const { data: pointsRows, error: pointsErr } = await supabase.rpc(
+          'award_task_points',
+          { p_user_id: user.id, p_points_delta: pointsToAward }
+        );
+        if (pointsErr) throw pointsErr;
+        updatedUserPoints = pointsRows?.[0]?.points ?? user.points + pointsToAward;
       }
     }
 
