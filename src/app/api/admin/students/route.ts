@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
       rollNumber: d.roll_number,
       status: d.status,
       points: d.points ?? 0,
+      avatarUrl: d.avatar_url ?? null,
       createdAt: new Date(d.created_at),
     }));
 

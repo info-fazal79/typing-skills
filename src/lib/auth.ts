@@ -56,6 +56,7 @@ export async function getUserFromRequest(req: NextRequest) {
       rollNumber: userDoc.roll_number,
       status: userDoc.status,
       points: userDoc.points,
+      avatarUrl: userDoc.avatar_url ?? null,
       createdAt: new Date(userDoc.created_at),
     };
   } catch {

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
+import { Avatar } from '@/components/Avatar';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useToast } from '@/components/ToastProvider';
 import {
@@ -623,17 +624,22 @@ export default function AdminPage() {
                           {students.map((student) => (
                             <tr key={student.id} className="hover:bg-neutral-900/10 transition-colors">
                               <td className="py-4 px-6">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-neutral-200">{student.name}</span>
-                                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold tracking-wider ${
-                                    student.role === 'STUDENT'
-                                      ? 'bg-sky-500/10 text-sky-400'
-                                      : 'bg-neutral-800/50 text-neutral-400'
-                                  }`}>
-                                    {student.role === 'STUDENT' ? 'Student' : 'General'}
-                                  </span>
+                                <div className="flex items-center gap-3">
+                                  <Avatar src={student.avatarUrl} name={student.name} size={32} />
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-neutral-200">{student.name}</span>
+                                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold tracking-wider ${
+                                        student.role === 'STUDENT'
+                                          ? 'bg-sky-500/10 text-sky-400'
+                                          : 'bg-neutral-800/50 text-neutral-400'
+                                      }`}>
+                                        {student.role === 'STUDENT' ? 'Student' : 'General'}
+                                      </span>
+                                    </div>
+                                    <div className="text-[11px] text-neutral-500 mt-0.5">{student.email}</div>
+                                  </div>
                                 </div>
-                                <div className="text-[11px] text-neutral-500 mt-0.5">{student.email}</div>
                               </td>
                               <td className="py-4 px-6 text-neutral-400">
                                 {student.role === 'STUDENT' ? (

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Sparkles, Trophy, LayoutDashboard, LogOut, Award, LogIn } from 'lucide-react';
+import { Avatar } from './Avatar';
 
 interface UserData {
   id: string;
@@ -15,6 +16,7 @@ interface UserData {
   rollNumber?: string;
   courseName?: string;
   batchName?: string;
+  avatarUrl?: string | null;
 }
 
 export function Navbar() {
@@ -135,12 +137,15 @@ export function Navbar() {
                 <span className="font-mono text-xs font-bold text-neutral-300">{user.points ?? 0} pts</span>
               </div>
 
-              {/* User Dropdown / Label */}
-              <div className="hidden md:flex flex-col text-right">
-                <span className="text-xs font-bold text-neutral-200 leading-none">{user.name}</span>
-                {user.role === 'ADMIN' && (
-                  <span className="text-[11px] text-amber-500/80 uppercase tracking-wider font-semibold mt-0.5">Administrator</span>
-                )}
+              {/* User Label + Avatar */}
+              <div className="hidden md:flex items-center gap-2">
+                <div className="flex flex-col text-right">
+                  <span className="text-xs font-bold text-neutral-200 leading-none">{user.name}</span>
+                  {user.role === 'ADMIN' && (
+                    <span className="text-[11px] text-amber-500/80 uppercase tracking-wider font-semibold mt-0.5">Administrator</span>
+                  )}
+                </div>
+                <Avatar src={user.avatarUrl} name={user.name} size={30} />
               </div>
 
               {/* Mobile quick links */}

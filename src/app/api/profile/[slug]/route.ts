@@ -15,7 +15,7 @@ export async function GET(
     // First try by slug
     const { data: bySlug } = await supabase
       .from('users')
-      .select('id, name, role, status, course_name, batch_name, roll_number, points, best_wpm, avg_wpm, session_count, created_at, slug')
+      .select('id, name, role, status, course_name, batch_name, roll_number, points, best_wpm, avg_wpm, session_count, created_at, slug, avatar_url')
       .eq('slug', slug)
       .eq('status', 'APPROVED')
       .single();
@@ -26,7 +26,7 @@ export async function GET(
       // Fall back to searching by id (for old links)
       const { data: byId } = await supabase
         .from('users')
-        .select('id, name, role, status, course_name, batch_name, roll_number, points, best_wpm, avg_wpm, session_count, created_at, slug')
+        .select('id, name, role, status, course_name, batch_name, roll_number, points, best_wpm, avg_wpm, session_count, created_at, slug, avatar_url')
         .eq('id', slug)
         .eq('status', 'APPROVED')
         .single();
@@ -101,6 +101,8 @@ export async function GET(
         rollNumber: canSeeRollNumber ? (user.roll_number ?? null) : null,
         points: user.points ?? 0,
         joinedAt: user.created_at,
+        avatarUrl: user.avatar_url ?? null,
+        isOwnProfile: !!viewer && viewer.id === user.id,
       },
       analytics: {
         totalTests,

@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
+import { Avatar } from '@/components/Avatar';
 import { Trophy, Award, Users, Crown, ChevronDown } from 'lucide-react';
 
 export default function LeaderboardPage() {
@@ -123,7 +124,77 @@ export default function LeaderboardPage() {
   const batchList = selectedCourse ? (coursesMap[selectedCourse] ?? []) : [];
   const generalList: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[] = data?.general ?? [];
 
-  const listToRender = (activeTab === 'general' ? generalList : batchData).slice(0, limit);
+  const fullList = activeTab === 'general' ? generalList : batchData;
+  const listToRender = fullList.slice(0, limit);
+  const podiumList = fullList.slice(0, 3);
+
+  // "Your rank" pinned row — only needed when the viewer exists in this list
+  // but the current "show top N" slice cuts them off from view.
+  const viewerId: string | undefined = data?.viewerId;
+  const myIndex = viewerId ? fullList.findIndex((e: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => e.id === viewerId) : -1;
+  const myRank = myIndex >= 0 ? myIndex + 1 : null;
+  const myEntry = myIndex >= 0 ? fullList[myIndex] : null;
+  const showPinnedRow = !!myEntry && myRank !== null && myRank > listToRender.length;
+
+  const renderEntryRow = (entry: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, rank: number, pinned = false) => (
+    <tr
+      key={entry.id}
+      className={`transition-colors ${
+        pinned ? 'bg-amber-500/[0.06]' : `hover:bg-neutral-900/30 ${rank <= 3 ? 'bg-amber-500/[0.02]' : ''}`
+      }`}
+    >
+      <td className="py-4 px-5 text-center">{renderRankBadge(rank)}</td>
+      <td className="py-4 px-5 font-bold text-neutral-200">
+        <Link
+          href={`/profile/${entry.slug ?? entry.id}`}
+          className="flex items-center gap-2.5 hover:text-amber-400 transition-colors w-max group"
+        >
+          <Avatar src={entry.avatarUrl} name={entry.name} size={28} />
+          <span className="group-hover:underline underline-offset-2">{entry.name}</span>
+          {pinned && <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">(You)</span>}
+        </Link>
+      </td>
+      {activeTab === 'batch' ? (
+        <>
+          <td className="py-4 px-5 text-neutral-400">{entry.courseName || '—'}</td>
+          <td className="py-4 px-5">
+            <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[11px] font-semibold text-neutral-300">
+              {entry.batchName || '—'}
+            </span>
+          </td>
+          <td className="py-4 px-5 font-mono text-neutral-400 text-[11px]">{entry.rollNumber || '—'}</td>
+        </>
+      ) : (
+        <>
+          <td className="py-4 px-5">
+            {entry.role === 'STUDENT' ? (
+              <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide">
+                Student
+              </span>
+            ) : (
+              <span className="bg-neutral-800/50 text-neutral-400 border border-neutral-700/50 px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide">
+                General
+              </span>
+            )}
+          </td>
+          <td className="py-4 px-5 text-neutral-400">{entry.role === 'STUDENT' ? (entry.courseName || '—') : '—'}</td>
+          <td className="py-4 px-5">
+            {entry.role === 'STUDENT' && entry.batchName ? (
+              <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[11px] font-semibold text-neutral-300">
+                {entry.batchName}
+              </span>
+            ) : (
+              <span className="text-neutral-500">—</span>
+            )}
+          </td>
+        </>
+      )}
+      <td className="py-4 px-5 text-right font-mono font-bold text-sky-400">{entry.bestWpm} <span className="text-[11px] text-neutral-500">wpm</span></td>
+      <td className="py-4 px-5 text-right pr-7 font-bold font-mono text-amber-400">
+        {entry.points} <span className="text-[11px] text-neutral-500 font-semibold uppercase">pts</span>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
@@ -227,6 +298,50 @@ export default function LeaderboardPage() {
           )}
         </section>
 
+        {/* ── Podium (top 3) ── */}
+        {podiumList.length > 0 && !(activeTab === 'batch' && (!selectedBatch || batchLoading)) && (
+          <section className="grid grid-cols-3 gap-3 items-end px-2">
+            {[1, 0, 2].map((i) => {
+              const entry = podiumList[i];
+              const rank = i + 1;
+              if (!entry) return <div key={i} />;
+              const isFirst = rank === 1;
+              return (
+                <div
+                  key={entry.id}
+                  className={`flex flex-col items-center gap-2 rounded-2xl border p-4 ${
+                    isFirst
+                      ? 'bg-amber-500/10 border-amber-500/30 pb-6 -mt-4'
+                      : 'bg-neutral-900/30 border-neutral-800'
+                  }`}
+                >
+                  <div className="relative">
+                    <Avatar src={entry.avatarUrl} name={entry.name} size={isFirst ? 72 : 56} />
+                    <div
+                      className={`absolute -bottom-1 -right-1 rounded-full flex items-center justify-center font-black font-mono border ${
+                        rank === 1
+                          ? 'w-6 h-6 text-xs bg-amber-500 text-neutral-950 border-amber-400'
+                          : rank === 2
+                          ? 'w-5 h-5 text-[10px] bg-neutral-300 text-neutral-900 border-neutral-200'
+                          : 'w-5 h-5 text-[10px] bg-amber-800 text-amber-100 border-amber-700'
+                      }`}
+                    >
+                      {rank}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/profile/${entry.slug ?? entry.id}`}
+                    className="text-sm font-bold text-neutral-100 hover:text-amber-400 transition-colors text-center truncate max-w-full"
+                  >
+                    {entry.name}
+                  </Link>
+                  <span className="font-mono text-xs text-amber-400 font-bold">{entry.points} pts</span>
+                </div>
+              );
+            })}
+          </section>
+        )}
+
         {/* ── Rankings table ── */}
         <section className="bg-neutral-900/10 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
           {activeTab === 'batch' && !selectedBatch ? (
@@ -268,62 +383,15 @@ export default function LeaderboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-900/60 text-xs">
-                  {listToRender.map((entry: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, idx: number) => (
-                    <tr
-                      key={entry.id}
-                      className={`hover:bg-neutral-900/30 transition-colors ${idx < 3 ? 'bg-amber-500/[0.02]' : ''}`}
-                    >
-                      <td className="py-4 px-5 text-center">{renderRankBadge(idx + 1)}</td>
-                      <td className="py-4 px-5 font-bold text-neutral-200">
-                        <Link
-                          href={`/profile/${entry.slug ?? entry.id}`}
-                          className="hover:text-amber-400 transition-colors hover:underline underline-offset-2"
-                        >
-                          {entry.name}
-                        </Link>
-                      </td>
-                      {activeTab === 'batch' ? (
-                        <>
-                          <td className="py-4 px-5 text-neutral-400">{entry.courseName || '—'}</td>
-                          <td className="py-4 px-5">
-                            <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[11px] font-semibold text-neutral-300">
-                              {entry.batchName || '—'}
-                            </span>
-                          </td>
-                          <td className="py-4 px-5 font-mono text-neutral-400 text-[11px]">{entry.rollNumber || '—'}</td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="py-4 px-5">
-                            {entry.role === 'STUDENT' ? (
-                              <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide">
-                                Student
-                              </span>
-                            ) : (
-                              <span className="bg-neutral-800/50 text-neutral-400 border border-neutral-700/50 px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide">
-                                General
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-4 px-5 text-neutral-400">{entry.role === 'STUDENT' ? (entry.courseName || '—') : '—'}</td>
-                          <td className="py-4 px-5">
-                            {entry.role === 'STUDENT' && entry.batchName ? (
-                              <span className="bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 font-mono text-[11px] font-semibold text-neutral-300">
-                                {entry.batchName}
-                              </span>
-                            ) : (
-                              <span className="text-neutral-500">—</span>
-                            )}
-                          </td>
-                        </>
-                      )}
-                      <td className="py-4 px-5 text-right font-mono font-bold text-sky-400">{entry.bestWpm} <span className="text-[11px] text-neutral-500">wpm</span></td>
-                      <td className="py-4 px-5 text-right pr-7 font-bold font-mono text-amber-400">
-                        {entry.points} <span className="text-[11px] text-neutral-500 font-semibold uppercase">pts</span>
-                      </td>
-                    </tr>
-                  ))}
+                  {listToRender.map((entry: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, idx: number) =>
+                    renderEntryRow(entry, idx + 1)
+                  )}
                 </tbody>
+                {showPinnedRow && myEntry && myRank !== null && (
+                  <tbody className="text-xs border-t-2 border-amber-500/30">
+                    {renderEntryRow(myEntry, myRank, true)}
+                  </tbody>
+                )}
               </table>
             </div>
           )}
