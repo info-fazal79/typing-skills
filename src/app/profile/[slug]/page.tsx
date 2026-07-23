@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Navbar } from '@/components/Navbar';
 import { Avatar } from '@/components/Avatar';
 import { AvatarUpload } from '@/components/AvatarUpload';
 import Link from 'next/link';
@@ -74,7 +73,6 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
   if (loading) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Navbar />
         <div className="flex-1 flex items-center justify-center gap-3">
           <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-brand-400 border-r-2 border-transparent" />
           <span className="text-neutral-500 text-sm font-medium">Loading profile…</span>
@@ -86,7 +84,6 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
   if (notFound || !data) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4">
           <div className="text-6xl font-black text-neutral-700">404</div>
           <p className="text-neutral-400 text-sm">This profile doesn&apos;t exist or is not approved yet.</p>
@@ -122,7 +119,6 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <Navbar />
 
       {/* Match leaderboard's max-w-5xl width */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col gap-6">
