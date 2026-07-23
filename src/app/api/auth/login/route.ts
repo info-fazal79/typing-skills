@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
         batchName: user.batch_name,
         rollNumber: user.roll_number,
         points: user.points,
+        avatarUrl: user.avatar_url ?? null,
       },
     });
 

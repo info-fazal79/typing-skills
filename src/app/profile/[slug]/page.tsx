@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
+import { Avatar } from '@/components/Avatar';
+import { AvatarUpload } from '@/components/AvatarUpload';
 import Link from 'next/link';
 import {
   Trophy, Zap, Target, Clock, BookOpen,
@@ -18,6 +20,8 @@ interface ProfileData {
     rollNumber: string | null;
     points: number;
     joinedAt: string;
+    avatarUrl: string | null;
+    isOwnProfile: boolean;
   };
   analytics: {
     totalTests: number;
@@ -133,12 +137,19 @@ export default function ProfilePage({ params }: { params: Promise<{ slug: string
 
         {/* ── Profile Hero ── */}
         <section className="bg-neutral-900/30 border border-neutral-800 rounded-2xl p-6 flex flex-col sm:flex-row gap-5 items-start sm:items-center">
-          {/* Avatar */}
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-600/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-            <span className="text-2xl font-black text-amber-400">
-              {profile.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
+          {/* Avatar — editable if this is the viewer's own profile */}
+          {profile.isOwnProfile ? (
+            <AvatarUpload
+              currentSrc={profile.avatarUrl}
+              name={profile.name}
+              size={64}
+              onUploaded={(avatarUrl) =>
+                setData((prev) => prev ? { ...prev, profile: { ...prev.profile, avatarUrl } } : prev)
+              }
+            />
+          ) : (
+            <Avatar src={profile.avatarUrl} name={profile.name} size={64} />
+          )}
 
           {/* Info */}
           <div className="flex flex-col gap-2 flex-1">

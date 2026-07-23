@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { TypingPractice } from '@/components/TypingPractice';
+import { AvatarUpload } from '@/components/AvatarUpload';
 import {
   Award, BookOpen, Clock, Calendar, CheckCircle2, AlertCircle, Play,
   ArrowLeft, TrendingUp, BarChart3, Zap, Target, Hash,
@@ -229,24 +230,36 @@ export default function DashboardPage() {
 
         {/* ── Profile header ── */}
         <section className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-neutral-800/60 pb-6">
-          <div>
-            <span className="text-[11px] font-bold text-amber-500 uppercase tracking-widest">
-              {user?.role === 'STUDENT' ? 'Student Profile' : 'General Profile'}
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-black text-neutral-100 mt-0.5">{user?.name}</h1>
-            {user?.role === 'STUDENT' && (
-              <p className="text-xs text-neutral-500 mt-1 flex flex-wrap gap-x-3">
-                <span>Course: <strong className="text-neutral-300">{user.courseName || 'N/A'}</strong></span>
-                <span>Batch: <strong className="text-neutral-300">{user.batchName || 'N/A'}</strong></span>
-                <span>Roll: <strong className="text-neutral-300">{user.rollNumber || 'N/A'}</strong></span>
-              </p>
-            )}
-            {user?.role === 'USER' && (
-              <p className="text-xs text-neutral-500 mt-1 flex flex-wrap gap-x-3">
-                <span>Account Type: <strong className="text-neutral-300">General User</strong></span>
-                <span>Mode: <strong className="text-neutral-300">Self Practice</strong></span>
-              </p>
-            )}
+          <div className="flex items-center gap-4">
+            <AvatarUpload
+              currentSrc={user?.avatarUrl}
+              name={user?.name ?? '?'}
+              size={64}
+              onUploaded={(avatarUrl) =>
+                setData((prev: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) =>
+                  prev ? { ...prev, user: { ...prev.user, avatarUrl } } : prev
+                )
+              }
+            />
+            <div>
+              <span className="text-[11px] font-bold text-amber-500 uppercase tracking-widest">
+                {user?.role === 'STUDENT' ? 'Student Profile' : 'General Profile'}
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-black text-neutral-100 mt-0.5">{user?.name}</h1>
+              {user?.role === 'STUDENT' && (
+                <p className="text-xs text-neutral-500 mt-1 flex flex-wrap gap-x-3">
+                  <span>Course: <strong className="text-neutral-300">{user.courseName || 'N/A'}</strong></span>
+                  <span>Batch: <strong className="text-neutral-300">{user.batchName || 'N/A'}</strong></span>
+                  <span>Roll: <strong className="text-neutral-300">{user.rollNumber || 'N/A'}</strong></span>
+                </p>
+              )}
+              {user?.role === 'USER' && (
+                <p className="text-xs text-neutral-500 mt-1 flex flex-wrap gap-x-3">
+                  <span>Account Type: <strong className="text-neutral-300">General User</strong></span>
+                  <span>Mode: <strong className="text-neutral-300">Self Practice</strong></span>
+                </p>
+              )}
+            </div>
           </div>
           {user?.role === 'STUDENT' && (
             <div className="flex items-center gap-2 bg-neutral-950 px-4 py-2.5 rounded-xl border border-neutral-800">
