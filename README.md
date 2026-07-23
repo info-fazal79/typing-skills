@@ -23,11 +23,12 @@ Supabase (Postgres), with custom JWT-based session auth.
      Supabase project's API settings
    - `JWT_SECRET` — a long random value (`openssl rand -base64 48`). The app
      will refuse to start without this set.
-   - `RESEND_API_KEY` / `RESEND_FROM_EMAIL` — optional, only needed for the
-     forgot-password email. Without these set, forgot-password requests
-     still succeed (to avoid leaking which emails are registered) but no
-     email actually goes out; check the server log for a clear warning if
-     that happens.
+   - `SMTP_*` — optional, only needed for the forgot-password email. Without
+     these set, forgot-password requests still succeed (to avoid leaking
+     which emails are registered) but no email actually goes out; check the
+     server log for a clear warning if that happens. See the comments in
+     `.env.example` for how to use Gmail + an App Password if you don't have
+     your own domain/SMTP provider.
 2. Run `scripts/sql/2026-07-21-add-password-reset-columns.sql` once against
    your Supabase project (SQL editor) — the forgot-password flow needs the
    `reset_token`/`reset_token_expires_at` columns it adds to `users`.
@@ -66,9 +67,9 @@ be safely re-run — every collection is migrated with `upsert`.
   security boundary on its own.
 - Password reset (`src/app/api/auth/forgot-password`,
   `src/app/api/auth/reset-password`) stores a SHA-256 hash of a random token
-  on the user row with a 1-hour expiry, and emails the raw token via Resend
+  on the user row with a 1-hour expiry, and emails the raw token via SMTP
   (see `src/lib/mail.ts`). Requires the SQL migration in `scripts/sql/` and
-  the `RESEND_*` env vars above. This is intentionally independent of
+  the `SMTP_*` env vars above. This is intentionally independent of
   Supabase Auth — this app's users live in a custom `users` table, not
   Supabase's `auth.users`, so `supabase.auth.resetPasswordForEmail` would not
   apply here.
