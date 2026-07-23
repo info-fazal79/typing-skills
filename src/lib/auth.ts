@@ -57,6 +57,7 @@ export async function getUserFromRequest(req: NextRequest) {
       status: userDoc.status,
       points: userDoc.points,
       avatarUrl: userDoc.avatar_url ?? null,
+      slug: userDoc.slug ?? null,
       createdAt: new Date(userDoc.created_at),
     };
   } catch {
