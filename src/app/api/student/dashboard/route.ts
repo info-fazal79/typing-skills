@@ -14,7 +14,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Apply retrospective penalties (non-blocking)
+    // Apply retrospective penalties. This is awaited — it runs in-request,
+    // not in the background — but is non-fatal: applyInactivityPenalties
+    // catches its own errors internally, and this wrapper is just an extra
+    // guard in case that ever changes.
     try {
       await applyInactivityPenalties(user.id);
     } catch (e) {

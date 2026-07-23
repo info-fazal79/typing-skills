@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 
 /**
  * Checks and applies daily inactivity penalties for a student retrospectively.
- * Runs on user actions (login, dashboard load, saving practice session).
+ * Runs on user actions (dashboard load, saving a practice session, task submit).
  */
 export async function applyInactivityPenalties(userId: string) {
   try {
@@ -25,7 +25,7 @@ export async function applyInactivityPenalties(userId: string) {
         .select('*')
         .eq('batch_name', user.batch_name)
         .single();
-        
+
       if (batchTarget) {
         targetMinutes = batchTarget.daily_target_minutes ?? 5;
         penaltyPoints = batchTarget.points_deduction ?? 10;
@@ -41,73 +41,99 @@ export async function applyInactivityPenalties(userId: string) {
       : new Date(user.created_at || now);
 
     const startCheckDate = new Date(lastCheck);
-    startCheckDate.setHours(0, 0, 0, 0);
+    startCheckDate.setUTCHours(0, 0, 0, 0);
 
     const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(23, 59, 59, 999);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    yesterday.setUTCHours(23, 59, 59, 999);
 
     if (startCheckDate >= yesterday) return;
 
-    const currentDate = new Date(startCheckDate);
-    let totalDeductions = 0;
-    const logsToCreate: { id: string; user_id: string; date: string; points_deducted: number; created_at: string }[] = [];
+    // Build every calendar date in the gap up front, then fetch everything
+    // needed for the whole range in two queries — not one (or two) query per
+    // day. A student inactive for months previously meant hundreds of
+    // sequential awaited round trips on the request that happened to trigger
+    // this (dashboard load, practice save, task submit), which could hang or
+    // time out the request entirely with zero progress saved.
+    const dateStrs: string[] = [];
+    const cursor = new Date(startCheckDate);
+    while (cursor <= yesterday) {
+      dateStrs.push(cursor.toISOString().split('T')[0]);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
 
-    while (currentDate <= yesterday) {
-      const dateStr = currentDate.toISOString().split('T')[0];
-      const logId = `${userId}_${dateStr}`;
+    const rangeStart = `${dateStrs[0]}T00:00:00.000Z`;
+    const rangeEnd = `${dateStrs[dateStrs.length - 1]}T23:59:59.999Z`;
 
-      // We'll skip existing log check to speed up if possible, 
-      // but let's query it if needed, or rely on Upsert constraints.
-      // Since inactivity_logs wasn't in original schema script, 
-      // we'll just check it gracefully.
-      const { data: existingLog } = await supabase
+    // Which of these dates were already checked in a previous call? The
+    // inactivity_logs table may not exist in every deployment yet — degrade
+    // gracefully (treat as "nothing logged yet") instead of letting this
+    // throw and abort the whole function, which would also skip advancing
+    // last_penalty_check below and cause every future call to re-scan the
+    // same growing range forever.
+    let existingDates = new Set<string>();
+    try {
+      const { data: existingLogs } = await supabase
         .from('inactivity_logs')
-        .select('id')
-        .eq('id', logId)
-        .single();
-
-      if (!existingLog) {
-        const dayStart = new Date(`${dateStr}T00:00:00`).toISOString();
-        const dayEnd = new Date(`${dateStr}T23:59:59.999`).toISOString();
-
-        const { data: sessionsSnap } = await supabase
-          .from('practice_sessions')
-          .select('duration')
-          .eq('user_id', userId)
-          .gte('created_at', dayStart)
-          .lte('created_at', dayEnd);
-
-        const totalPracticeSeconds = (sessionsSnap || []).reduce(
-          (sum, d) => sum + (d.duration ?? 0),
-          0
-        );
-
-        const pointsDeducted = totalPracticeSeconds < targetSeconds ? penaltyPoints : 0;
-        if (pointsDeducted > 0) totalDeductions += pointsDeducted;
-
-        logsToCreate.push({
-          id: logId,
-          user_id: userId,
-          date: dateStr,
-          points_deducted: pointsDeducted,
-          created_at: now.toISOString(),
-        });
-      }
-
-      currentDate.setDate(currentDate.getDate() + 1);
+        .select('date')
+        .eq('user_id', userId)
+        .gte('date', dateStrs[0])
+        .lte('date', dateStrs[dateStrs.length - 1]);
+      existingDates = new Set((existingLogs || []).map((l) => l.date));
+    } catch (e) {
+      console.warn('inactivity_logs lookup failed (table may not exist yet):', e);
     }
 
-    // Apply updates
+    // Total practice seconds per day across the whole range, in one query.
+    const { data: sessionsSnap } = await supabase
+      .from('practice_sessions')
+      .select('created_at, duration')
+      .eq('user_id', userId)
+      .gte('created_at', rangeStart)
+      .lte('created_at', rangeEnd);
+
+    const secondsByDate = new Map<string, number>();
+    for (const s of sessionsSnap || []) {
+      const dateStr = new Date(s.created_at).toISOString().split('T')[0];
+      secondsByDate.set(dateStr, (secondsByDate.get(dateStr) ?? 0) + (s.duration ?? 0));
+    }
+
+    const logsToCreate: { id: string; user_id: string; date: string; points_deducted: number; created_at: string }[] = [];
+    let totalDeductions = 0;
+
+    for (const dateStr of dateStrs) {
+      if (existingDates.has(dateStr)) continue;
+
+      const totalPracticeSeconds = secondsByDate.get(dateStr) ?? 0;
+      const pointsDeducted = totalPracticeSeconds < targetSeconds ? penaltyPoints : 0;
+      if (pointsDeducted > 0) totalDeductions += pointsDeducted;
+
+      logsToCreate.push({
+        id: `${userId}_${dateStr}`,
+        user_id: userId,
+        date: dateStr,
+        points_deducted: pointsDeducted,
+        created_at: now.toISOString(),
+      });
+    }
+
     if (logsToCreate.length > 0) {
-      try { await supabase.from('inactivity_logs').upsert(logsToCreate); } catch {} // ignore if table doesn't exist
+      try {
+        await supabase.from('inactivity_logs').upsert(logsToCreate);
+      } catch (e) {
+        console.warn('Failed to upsert inactivity_logs (table may not exist yet):', e);
+      }
     }
 
-    const newPoints = Math.max(0, (user.points ?? 0) - totalDeductions);
-    await supabase.from('users').update({
-      points: newPoints,
-      last_penalty_check: now.toISOString(),
-    }).eq('id', userId);
+    // Atomic: deduct + advance the checkpoint in a single statement, so a
+    // concurrent request for the same user (or another penalty/points update
+    // landing at the same moment) can't clobber this one.
+    const { error: deductErr } = await supabase.rpc('apply_penalty_deduction', {
+      p_user_id: userId,
+      p_deduction: totalDeductions,
+      p_checked_at: now.toISOString(),
+    });
+    if (deductErr) throw deductErr;
 
     if (totalDeductions > 0) {
       console.log(`Applied inactivity penalty for user ${user.email}. Deducted: ${totalDeductions} points.`);

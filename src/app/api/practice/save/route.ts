@@ -58,32 +58,15 @@ export async function POST(req: NextRequest) {
     });
     if (sessionErr) throw sessionErr;
 
-    // Fetch existing user stats to compute bestWpm / avgWpm
-    const { data: currentUser } = await supabase
-      .from('users')
-      .select('best_wpm, total_wpm_sum, session_count, points')
-      .eq('id', user.id)
-      .single();
-
-    const currentBestWpm: number = currentUser?.best_wpm ?? 0;
-    const currentTotalWpm: number = currentUser?.total_wpm_sum ?? 0;
-    const currentSessionCount: number = currentUser?.session_count ?? 0;
-
-    const newBestWpm = Math.max(currentBestWpm, parseFloat(wpm));
-    const newTotalWpm = currentTotalWpm + parseFloat(wpm);
-    const newSessionCount = currentSessionCount + 1;
-    const newAvgWpm = Math.round(newTotalWpm / newSessionCount);
-    const newPoints = (currentUser?.points ?? 0) + pointsEarned;
-
-    // Update user stats
-    await supabase.from('users').update({
-      points: newPoints,
-      best_wpm: newBestWpm,
-      avg_wpm: newAvgWpm,
-      total_wpm_sum: newTotalWpm,
-      session_count: newSessionCount,
-      updated_at: now,
-    }).eq('id', user.id);
+    // Atomic increment — a single UPDATE statement in Postgres, not a
+    // select-then-write in application code, so two concurrent saves for the
+    // same user can't clobber each other's points/stats.
+    const { data: statsRows, error: statsErr } = await supabase.rpc(
+      'record_practice_session_stats',
+      { p_user_id: user.id, p_points_delta: pointsEarned, p_wpm: parseFloat(wpm) }
+    );
+    if (statsErr) throw statsErr;
+    const newPoints = statsRows?.[0]?.points ?? pointsEarned;
 
     return NextResponse.json({
       message: 'Practice session saved successfully',
