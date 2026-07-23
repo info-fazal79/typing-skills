@@ -2,18 +2,42 @@
 @import "tw-animate-css";
 
 :root {
-  --background: #111215;
-  --foreground: #d1d0c5;
+  /* Warm near-black, not the cooler blue-grey it replaces — paired with a
+     muted, deliberately-less-saturated ochre accent below instead of a
+     neon amber, so the palette reads as chosen rather than default. */
+  --background: #16130f;
+  --foreground: #ece6d9;
   /* Elevated panel surface, one shade up from --background. Use with
      Tailwind's opacity modifier (bg-surface/50, /40, /20, /10) instead of
      hand-picking a translucency per section. */
-  --surface: #1d1e22;
+  --surface: #221d16;
+
+  /* Brand accent ramp — a muted ochre/ember, not Tailwind's stock amber.
+     Named "brand" rather than "accent" so it doesn't collide with
+     Tailwind's own accent-color utility (accent-brand-500 on the crop
+     zoom slider, for instance). */
+  --brand-100: #f3e4cc;
+  --brand-400: #d9a55c;
+  --brand-500: #c1863f;
+  --brand-600: #a66f32;
+  --brand-700: #8a5a2a;
+  --brand-800: #6e4820;
+  --brand-900: #4a2f16;
+  --brand-950: #2b1b0d;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-brand-100: var(--brand-100);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-bengali: var(--font-noto-bengali), var(--font-geist-sans), sans-serif;
@@ -51,20 +75,20 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #111215;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2c2e35;
+  background: #2c2822;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #f59e0b;
+  background: var(--brand-500);
 }
 
 /* Custom Text Selection */
 ::selection {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
+  background: rgba(193, 134, 63, 0.25);
+  color: var(--brand-400);
 }

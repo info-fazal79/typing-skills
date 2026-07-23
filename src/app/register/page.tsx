@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Sparkles, ArrowRight, User, Mail, BookOpen, Layers, Hash, CheckCircle2, BadgeCheck, AlertTriangle } from 'lucide-react';
+import { ArrowRight, User, Mail, BookOpen, Layers, Hash, CheckCircle2, BadgeCheck, AlertTriangle } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 import { PasswordInput } from '@/components/PasswordInput';
 
 export default function RegisterPage() {
@@ -136,7 +137,7 @@ export default function RegisterPage() {
           
           {activeTab === 'STUDENT' ? (
             <p className="text-neutral-400 text-sm leading-relaxed">
-              Your account is currently <span className="text-amber-500 font-semibold">Pending Admin Approval</span>. 
+              Your account is currently <span className="text-brand-500 font-semibold">Pending Admin Approval</span>. 
               Once an administrator approves your account, you will be able to log in, access the typing practice modules, view the leaderboards, and complete batch assignments.
             </p>
           ) : (
@@ -147,7 +148,7 @@ export default function RegisterPage() {
 
           <Link
             href="/login"
-            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/10"
+            className="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-neutral-950 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-brand-500/10"
           >
             Go to Login
             <ArrowRight size={16} />
@@ -162,12 +163,9 @@ export default function RegisterPage() {
   return (
     <main className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4 py-12">
       {/* Title */}
-      <Link href="/" className="flex items-center gap-2 mb-8 group">
-        <Sparkles className="text-amber-500 group-hover:rotate-12 transition-transform duration-300" size={32} />
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-transparent">
-          Typing Institute
-        </h1>
-      </Link>
+      <div className="mb-8">
+        <Logo size="large" />
+      </div>
 
       <div className="w-full max-w-lg bg-surface/50 border border-neutral-800 p-8 rounded-2xl backdrop-blur-md shadow-2xl">
         
@@ -178,7 +176,7 @@ export default function RegisterPage() {
             onClick={() => setActiveTab('STUDENT')}
             className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
               activeTab === 'STUDENT'
-                ? 'bg-amber-500 text-neutral-950 shadow-md'
+                ? 'bg-brand-500 text-neutral-950 shadow-md'
                 : 'text-neutral-400 hover:text-neutral-200'
             }`}
           >
@@ -228,7 +226,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-brand-500/50 transition-colors text-sm"
               />
             </div>
           </div>
@@ -244,7 +242,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="john.doe@example.com"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 placeholder-neutral-700 focus:outline-hidden focus:border-brand-500/50 transition-colors text-sm"
               />
             </div>
           </div>
@@ -265,7 +263,7 @@ export default function RegisterPage() {
           {activeTab === 'STUDENT' && (
             <>
               {metadataError && (
-                <div className="sm:col-span-2 flex items-start gap-2 p-3 rounded-xl bg-amber-950/30 border border-amber-900/50 text-amber-400 text-xs">
+                <div className="sm:col-span-2 flex items-start gap-2 p-3 rounded-xl bg-brand-950/30 border border-brand-900/50 text-brand-400 text-xs">
                   <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                   <span>Course list unavailable right now. Please try again shortly, or contact your administrator if this continues.</span>
                 </div>
@@ -279,7 +277,7 @@ export default function RegisterPage() {
                     required
                     value={courseName}
                     onChange={(e) => setCourseName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 focus:outline-hidden focus:border-brand-500/50 transition-colors text-sm appearance-none"
                   >
                     <option value="">-- Select a Course --</option>
                     {metadata?.courses && Object.keys(metadata.courses).map(c => (
@@ -298,7 +296,7 @@ export default function RegisterPage() {
                     value={batchName}
                     onChange={(e) => setBatchName(e.target.value)}
                     disabled={!courseName}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:border-brand-500/50 transition-colors text-sm appearance-none"
                   >
                     <option value="">-- Select Batch --</option>
                     {availableBatches.map(b => (
@@ -317,7 +315,7 @@ export default function RegisterPage() {
                     value={rollNumber}
                     onChange={(e) => setRollNumber(e.target.value)}
                     disabled={!batchName || fetchingRolls}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:border-amber-500/50 transition-colors text-sm appearance-none"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-neutral-800 text-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:border-brand-500/50 transition-colors text-sm appearance-none"
                   >
                     <option value="">
                       {!batchName ? '-- Select Batch First --' : fetchingRolls ? 'Loading...' : '-- Select Roll --'}
@@ -335,7 +333,7 @@ export default function RegisterPage() {
             type="submit"
             disabled={loading}
             className={`sm:col-span-2 flex items-center justify-center gap-2 ${
-              activeTab === 'STUDENT' ? 'bg-amber-500 hover:bg-amber-400' : 'bg-emerald-500 hover:bg-emerald-400'
+              activeTab === 'STUDENT' ? 'bg-brand-500 hover:bg-brand-400' : 'bg-emerald-500 hover:bg-emerald-400'
             } disabled:bg-neutral-800 text-neutral-950 disabled:text-neutral-500 font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg active:scale-95 mt-2`}
           >
             {loading ? 'Submitting Registration...' : 'Register'}
@@ -345,7 +343,7 @@ export default function RegisterPage() {
 
         <p className="mt-8 text-neutral-500 text-xs text-center">
           Already have an account?{' '}
-          <Link href="/login" className="text-amber-500 hover:underline">
+          <Link href="/login" className="text-brand-500 hover:underline">
             Log In
           </Link>
         </p>

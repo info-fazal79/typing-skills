@@ -169,7 +169,7 @@ export function AvatarUpload({ currentSrc, name, size = 64, onUploaded }: Avatar
                 step={0.05}
                 value={zoom}
                 onChange={(e) => setZoom(Number(e.target.value))}
-                className="flex-1 accent-amber-500"
+                className="flex-1 accent-brand-500"
               />
             </div>
 
@@ -184,7 +184,7 @@ export function AvatarUpload({ currentSrc, name, size = 64, onUploaded }: Avatar
               <button
                 onClick={handleSave}
                 disabled={uploading || !croppedAreaPixels}
-                className="px-4 py-2 rounded-lg text-sm font-bold bg-amber-500 text-neutral-950 hover:bg-amber-400 disabled:bg-neutral-800 disabled:text-neutral-500 transition-all active:scale-95"
+                className="px-4 py-2 rounded-lg text-sm font-bold bg-brand-500 text-neutral-950 hover:bg-brand-400 disabled:bg-neutral-800 disabled:text-neutral-500 transition-all active:scale-95"
               >
                 {uploading ? 'Saving…' : 'Save Photo'}
               </button>

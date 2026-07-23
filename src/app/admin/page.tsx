@@ -374,7 +374,7 @@ export default function AdminPage() {
         {/* Header Block */}
         <section className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-neutral-900/30 p-6 rounded-2xl border border-neutral-800">
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-bold text-amber-500 uppercase tracking-widest flex items-center gap-1.5">
+            <span className="text-xs font-bold text-brand-500 uppercase tracking-widest flex items-center gap-1.5">
               <ShieldAlert size={14} />
               Control Panel
             </span>
@@ -384,7 +384,7 @@ export default function AdminPage() {
 
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-2 bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-amber-400 hover:border-amber-500/40 px-4 py-2.5 rounded-xl font-semibold text-xs transition-all active:scale-95 shadow-md"
+            className="flex items-center gap-2 bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-brand-400 hover:border-brand-500/40 px-4 py-2.5 rounded-xl font-semibold text-xs transition-all active:scale-95 shadow-md"
           >
             <Download size={14} />
             Export CSV Report
@@ -406,13 +406,13 @@ export default function AdminPage() {
               onClick={() => setActiveTab(tab.id as any /* eslint-disable-line @typescript-eslint/no-explicit-any */)}
               className={`px-4 py-3 text-xs font-bold transition-all relative border-b-2 -mb-[6px] ${
                 activeTab === tab.id
-                  ? 'border-amber-500 text-amber-400'
+                  ? 'border-brand-500 text-brand-400'
                   : 'border-transparent text-neutral-500 hover:text-neutral-300'
               }`}
             >
               {tab.label}
               {tab.count > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-brand-500/10 text-brand-400 border border-brand-500/20">
                   {tab.count}
                 </span>
               )}
@@ -423,13 +423,13 @@ export default function AdminPage() {
         {/* Sub-view Rendering */}
         {loading ? (
           <div className="py-20 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-amber-400 border-r-2 border-transparent"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-400 border-r-2 border-transparent"></div>
           </div>
         ) : (
           <>
             {/* 1. Pending Approvals View */}
             {activeTab === 'approvals' && (
-              <div className="bg-neutral-900/10 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="bg-neutral-900/10 border border-neutral-800 rounded-lg overflow-hidden shadow-xl">
                 {students.filter(s => s.status === 'PENDING').length === 0 ? (
                   <div className="p-12 text-center text-sm text-neutral-500 font-medium">
                     No pending registration approvals found.
@@ -466,7 +466,7 @@ export default function AdminPage() {
                           <th className="py-4 px-6 w-10">
                             <input
                               type="checkbox"
-                              className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-neutral-950 cursor-pointer"
+                              className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-neutral-950 cursor-pointer"
                               checked={
                                 students.filter(s => s.status === 'PENDING').length > 0 &&
                                 selectedPending.length === students.filter(s => s.status === 'PENDING').length
@@ -490,11 +490,11 @@ export default function AdminPage() {
                       </thead>
                       <tbody className="divide-y divide-neutral-900/60">
                         {students.filter(s => s.status === 'PENDING').map((student) => (
-                          <tr key={student.id} className={`hover:bg-neutral-900/10 transition-colors ${selectedPending.includes(student.id) ? 'bg-amber-500/5' : ''}`}>
+                          <tr key={student.id} className={`hover:bg-neutral-900/10 transition-colors ${selectedPending.includes(student.id) ? 'bg-brand-500/5' : ''}`}>
                             <td className="py-4 px-6">
                               <input
                                 type="checkbox"
-                                className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-neutral-950 cursor-pointer"
+                                className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-neutral-950 cursor-pointer"
                                 checked={selectedPending.includes(student.id)}
                                 onChange={(e) => {
                                   if (e.target.checked) {
@@ -547,7 +547,7 @@ export default function AdminPage() {
                       value={filterCourse}
                       onChange={(e) => setFilterCourse(e.target.value)}
                       placeholder="e.g. Web Dev"
-                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-amber-500/40"
+                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-brand-500/40"
                     />
                   </div>
 
@@ -558,7 +558,7 @@ export default function AdminPage() {
                       value={filterBatch}
                       onChange={(e) => setFilterBatch(e.target.value)}
                       placeholder="e.g. Batch-A"
-                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-amber-500/40"
+                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-brand-500/40"
                     />
                   </div>
 
@@ -569,7 +569,7 @@ export default function AdminPage() {
                       value={filterRoll}
                       onChange={(e) => setFilterRoll(e.target.value)}
                       placeholder="e.g. IT-102"
-                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-amber-500/40"
+                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-brand-500/40"
                     />
                   </div>
 
@@ -578,7 +578,7 @@ export default function AdminPage() {
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
-                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-amber-500/40 font-semibold"
+                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-brand-500/40 font-semibold"
                     >
                       <option value="">All Statuses</option>
                       <option value="APPROVED">Approved</option>
@@ -593,7 +593,7 @@ export default function AdminPage() {
                     <select
                       value={filterRole}
                       onChange={(e) => setFilterRole(e.target.value)}
-                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-amber-500/40 font-semibold"
+                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-brand-500/40 font-semibold"
                     >
                       <option value="">All Accounts</option>
                       <option value="STUDENT">Students</option>
@@ -603,7 +603,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Directory Table */}
-                <div className="bg-neutral-900/10 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="bg-neutral-900/10 border border-neutral-800 rounded-lg overflow-hidden shadow-xl">
                   {students.length === 0 ? (
                     <div className="p-12 text-center text-sm text-neutral-500 font-medium">
                       No matching accounts found.
@@ -655,13 +655,13 @@ export default function AdminPage() {
                                   student.status === 'APPROVED'
                                     ? 'bg-emerald-500/10 text-emerald-400'
                                     : student.status === 'PENDING'
-                                      ? 'bg-amber-500/10 text-amber-400'
+                                      ? 'bg-brand-500/10 text-brand-400'
                                       : 'bg-red-500/10 text-red-400'
                                 }`}>
                                   {student.status}
                                 </span>
                               </td>
-                              <td className="py-4 px-6 font-mono font-bold text-amber-500">{student.points} pts</td>
+                              <td className="py-4 px-6 font-mono font-bold text-brand-500">{student.points} pts</td>
                               <td className="py-4 px-6 text-right pr-6">
                                 <div className="flex items-center justify-end gap-1.5">
                                   {student.status === 'APPROVED' && (
@@ -716,7 +716,7 @@ export default function AdminPage() {
                 {/* Creation Form */}
                 <div className="md:col-span-1 bg-neutral-900/40 p-6 rounded-2xl border border-neutral-800/80 h-max flex flex-col gap-4">
                   <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
-                    <Plus size={16} className="text-amber-500" />
+                    <Plus size={16} className="text-brand-500" />
                     Deploy New Assignment
                   </h3>
 
@@ -729,7 +729,7 @@ export default function AdminPage() {
                         value={taskTitle}
                         onChange={(e) => setTaskTitle(e.target.value)}
                         placeholder="e.g. Mid-term speed test"
-                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-amber-500/40"
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40"
                       />
                     </div>
 
@@ -738,7 +738,7 @@ export default function AdminPage() {
                       <select
                         value={taskLanguage}
                         onChange={(e) => setTaskLanguage(e.target.value)}
-                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-amber-500/40 font-bold"
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-bold"
                       >
                         <option value="ENGLISH">English</option>
                         <option value="BANGLA">বাংলা (Bangla)</option>
@@ -753,7 +753,7 @@ export default function AdminPage() {
                           required
                           value={taskTargetWpm}
                           onChange={(e) => setTaskTargetWpm(e.target.value)}
-                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-amber-500/40 font-mono"
+                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-mono"
                         />
                       </div>
 
@@ -764,7 +764,7 @@ export default function AdminPage() {
                           required
                           value={taskTargetAccuracy}
                           onChange={(e) => setTaskTargetAccuracy(e.target.value)}
-                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-amber-500/40 font-mono"
+                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-mono"
                         />
                       </div>
                     </div>
@@ -777,7 +777,7 @@ export default function AdminPage() {
                         value={taskBatches}
                         onChange={(e) => setTaskBatches(e.target.value)}
                         placeholder="e.g. Batch-2026-A, Batch-A"
-                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-amber-500/40"
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40"
                       />
                     </div>
 
@@ -788,7 +788,7 @@ export default function AdminPage() {
                           type="number"
                           value={taskPoints}
                           onChange={(e) => setTaskPoints(e.target.value)}
-                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-amber-500/40 font-mono"
+                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-mono"
                         />
                       </div>
 
@@ -799,7 +799,7 @@ export default function AdminPage() {
                           required
                           value={taskDeadline}
                           onChange={(e) => setTaskDeadline(e.target.value)}
-                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-amber-500/40 text-[11px]"
+                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-brand-500/40 text-[11px]"
                         />
                       </div>
                     </div>
@@ -812,13 +812,13 @@ export default function AdminPage() {
                         onChange={(e) => setTaskContent(e.target.value)}
                         rows={4}
                         placeholder="Paste the custom text students must type..."
-                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-amber-500/40 leading-relaxed font-sans"
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 leading-relaxed font-sans"
                       />
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95"
+                      className="w-full bg-brand-500 hover:bg-brand-400 text-neutral-950 font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95"
                     >
                       Publish Task
                     </button>
@@ -828,7 +828,7 @@ export default function AdminPage() {
                 {/* Active Tasks list */}
                 <div className="md:col-span-2 flex flex-col gap-4">
                   <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
-                    <BookOpen size={16} className="text-amber-500" />
+                    <BookOpen size={16} className="text-brand-500" />
                     Published Tasks & Submissions
                   </h3>
 
@@ -857,7 +857,7 @@ export default function AdminPage() {
                               <span>Target: <strong className="text-neutral-300 font-mono">{task.targetWpm} WPM / {task.targetAccuracy}% Acc</strong></span>
                               <span>Batches: <strong className="text-neutral-300 font-mono">{task.batches.join(', ') || 'None'}</strong></span>
                               <span>Reward: <strong className="text-neutral-300 font-mono">+{task.pointsAwardable} pts</strong></span>
-                              <span>Completions: <strong className="text-amber-400 font-mono font-bold">{task.completionsCount}</strong></span>
+                              <span>Completions: <strong className="text-brand-400 font-mono font-bold">{task.completionsCount}</strong></span>
                             </div>
                             <div className="text-[11px] text-neutral-400 font-medium">
                               Deadline: {new Date(task.deadline).toLocaleString()}
@@ -877,7 +877,7 @@ export default function AdminPage() {
                 {/* Form to upsert */}
                 <div className="md:col-span-1 bg-neutral-900/40 p-6 rounded-2xl border border-neutral-800/80 h-max flex flex-col gap-4">
                   <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
-                    <Sliders size={16} className="text-amber-500" />
+                    <Sliders size={16} className="text-brand-500" />
                     Configure Batch Rules
                   </h3>
 
@@ -890,7 +890,7 @@ export default function AdminPage() {
                         value={targetBatchName}
                         onChange={(e) => setTargetBatchName(e.target.value)}
                         placeholder="e.g. Batch-2026-A"
-                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-amber-500/40"
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40"
                       />
                     </div>
 
@@ -901,7 +901,7 @@ export default function AdminPage() {
                         required
                         value={targetMins}
                         onChange={(e) => setTargetMins(e.target.value)}
-                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-amber-500/40 font-mono"
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-mono"
                       />
                     </div>
 
@@ -912,13 +912,13 @@ export default function AdminPage() {
                         required
                         value={targetPenalty}
                         onChange={(e) => setTargetPenalty(e.target.value)}
-                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-amber-500/40 font-mono"
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-mono"
                       />
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95"
+                      className="w-full bg-brand-500 hover:bg-brand-400 text-neutral-950 font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95"
                     >
                       Save Rule
                     </button>
@@ -928,7 +928,7 @@ export default function AdminPage() {
                 {/* Targets List */}
                 <div className="md:col-span-2 flex flex-col gap-4">
                   <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
-                    <Sliders size={16} className="text-amber-500" />
+                    <Sliders size={16} className="text-brand-500" />
                     Configured Batch Targets
                   </h3>
 
@@ -950,7 +950,7 @@ export default function AdminPage() {
                             </span>
                           </div>
                           <div className="text-xs text-neutral-400 flex items-center gap-1.5 mt-1 font-semibold">
-                            <Sliders size={12} className="text-amber-500" />
+                            <Sliders size={12} className="text-brand-500" />
                             Daily Practice Target: <strong className="text-neutral-200 font-mono">{t.dailyTargetMinutes} mins</strong>
                           </div>
                         </div>
@@ -968,7 +968,7 @@ export default function AdminPage() {
                 {/* Course & Batch Management */}
                 <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-800/80 flex flex-col gap-6">
                   <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
-                    <BookOpen size={16} className="text-amber-500" />
+                    <BookOpen size={16} className="text-brand-500" />
                     Courses & Batches
                   </h3>
                   
@@ -979,7 +979,7 @@ export default function AdminPage() {
                       value={newCourse}
                       onChange={(e) => setNewCourse(e.target.value)}
                       placeholder="New Course Name..."
-                      className="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40"
+                      className="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-brand-500/40"
                     />
                     <button
                       onClick={() => {
@@ -1007,7 +1007,7 @@ export default function AdminPage() {
                       <select
                         value={selectedCourseForBatch}
                         onChange={(e) => setSelectedCourseForBatch(e.target.value)}
-                        className="bg-neutral-900 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40"
+                        className="bg-neutral-900 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-brand-500/40"
                       >
                         <option value="">Select Course...</option>
                         {Object.keys(metadata.courses).map(c => (
@@ -1019,7 +1019,7 @@ export default function AdminPage() {
                         value={newBatch}
                         onChange={(e) => setNewBatch(e.target.value)}
                         placeholder="New Batch Name..."
-                        className="flex-1 bg-neutral-900 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40"
+                        className="flex-1 bg-neutral-900 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-brand-500/40"
                       />
                       <button
                         onClick={() => {
@@ -1038,7 +1038,7 @@ export default function AdminPage() {
                           });
                           setNewBatch('');
                         }}
-                        className="bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-neutral-950 border border-amber-500/20 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                        className="bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-neutral-950 border border-brand-500/20 px-4 py-2 rounded-lg text-xs font-bold transition-all"
                       >
                         Add Batch
                       </button>
@@ -1098,7 +1098,7 @@ export default function AdminPage() {
                 {/* Roll Numbers Management */}
                 <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-800/80 flex flex-col gap-6">
                   <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
-                    <Users size={16} className="text-amber-500" />
+                    <Users size={16} className="text-brand-500" />
                     Allowed Roll Numbers by Batch
                   </h3>
                   
@@ -1108,7 +1108,7 @@ export default function AdminPage() {
                     <select
                       value={selectedBatchForRoll}
                       onChange={(e) => setSelectedBatchForRoll(e.target.value)}
-                      className="w-full bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40"
+                      className="w-full bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-brand-500/40"
                     >
                       <option value="">-- Select a Batch --</option>
                       {Object.values(metadata.courses).flat().map((b) => (
@@ -1126,7 +1126,7 @@ export default function AdminPage() {
                           value={newRoll}
                           onChange={(e) => setNewRoll(e.target.value)}
                           placeholder="e.g. IT-101 (comma separate for multiple)"
-                          className="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-amber-500/40 font-mono"
+                          className="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 text-xs focus:outline-hidden focus:border-brand-500/40 font-mono"
                         />
                         <button
                           onClick={() => {

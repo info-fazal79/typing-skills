@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import { generatePracticeText } from '@/utils/wordLists';
-import { RotateCcw, Volume2, VolumeX, Sparkles, Trophy } from 'lucide-react';
+import { RotateCcw, Volume2, VolumeX, Keyboard, Trophy } from 'lucide-react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -135,7 +135,7 @@ function ResultsTooltip({
   const point = payload[0].payload;
   const rows: { key: string; label: string; value: number; color: string }[] = [
     { key: 'errors', label: 'errors', value: point.errors, color: '#ca4754' },
-    { key: 'wpm', label: 'wpm', value: point.wpm, color: '#e2b714' },
+    { key: 'wpm', label: 'wpm', value: point.wpm, color: '#c1863f' },
     { key: 'raw', label: 'raw', value: point.rawWpm, color: '#b7b7ac' },
     { key: 'burst', label: 'burst', value: point.burst, color: '#646669' },
   ];
@@ -455,7 +455,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                 onClick={() => { setLanguage(id); setMode(defaultMode); }}
                 className={`px-3 py-1.5 rounded-md font-semibold transition-all ${
                   language === id
-                    ? 'bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/25'
+                    ? 'bg-brand-500 text-neutral-950 shadow-md shadow-brand-500/25'
                     : 'text-neutral-400 hover:text-neutral-200'
                 }`}
               >
@@ -484,7 +484,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                 onClick={() => setMode(id)}
                 className={`px-3 py-1.5 rounded-md font-medium transition-all shrink-0 whitespace-nowrap ${
                   mode === id
-                    ? 'bg-neutral-800 text-amber-400'
+                    ? 'bg-neutral-800 text-brand-400'
                     : 'text-neutral-400 hover:text-neutral-200'
                 }`}
               >
@@ -501,7 +501,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                 onClick={() => { setDuration(t); setIsCustomDuration(false); resetEngine(t); }}
                 className={`px-3 py-1.5 rounded-md font-medium transition-all ${
                   duration === t && !isCustomDuration
-                    ? 'bg-neutral-800 text-amber-400'
+                    ? 'bg-neutral-800 text-brand-400'
                     : 'text-neutral-400 hover:text-neutral-200'
                 }`}
               >
@@ -526,7 +526,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                     const val = parseInt(customDurationInput);
                     if (val > 0) { setDuration(val); resetEngine(val); }
                   }}
-                  className="w-16 px-2 py-1 bg-neutral-900 border border-amber-500/50 text-amber-400 rounded focus:outline-hidden text-sm"
+                  className="w-16 px-2 py-1 bg-neutral-900 border border-brand-500/50 text-brand-400 rounded focus:outline-hidden text-sm"
                   placeholder="sec"
                 />
               </form>
@@ -538,7 +538,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                 }}
                 className={`px-3 py-1.5 rounded-md font-medium transition-all ${
                   ![15, 30, 60].includes(duration)
-                    ? 'bg-neutral-800 text-amber-400'
+                    ? 'bg-neutral-800 text-brand-400'
                     : 'text-neutral-400 hover:text-neutral-200'
                 }`}
               >
@@ -555,7 +555,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
           onClick={() => inputRef.current?.focus()}
           className={`relative px-8 pt-14 pb-6 rounded-2xl border transition-all duration-300 bg-neutral-900/40 cursor-text ${
             isFocused
-              ? 'border-neutral-800 ring-1 ring-amber-500/20'
+              ? 'border-neutral-800 ring-1 ring-brand-500/20'
               : 'border-neutral-800 hover:border-neutral-700 opacity-60'
           }`}
         >
@@ -564,7 +564,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
             <div className="flex items-center gap-4">
               {/* normal-case overrides the row's uppercase — otherwise the
                   lowercase "s" suffix renders as "29S" */}
-              <span>Time: <strong className="text-amber-400 font-mono text-base normal-case">{timeLeft}s</strong></span>
+              <span>Time: <strong className="text-brand-400 font-mono text-base normal-case">{timeLeft}s</strong></span>
               <span>WPM: <strong className="text-neutral-200 font-mono text-base">{wpm}</strong></span>
               <span>Accuracy: <strong className="text-neutral-200 font-mono text-base">{accuracy}%</strong></span>
             </div>
@@ -575,14 +575,14 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                   if (!soundEnabled) { getAudioCtx(); ensureBuffers(); }
                   setSoundEnabled((s) => !s);
                 }}
-                className={`p-2.5 rounded-lg transition-colors ${soundEnabled ? 'text-amber-400' : 'text-neutral-400 hover:text-amber-400'}`}
+                className={`p-2.5 rounded-lg transition-colors ${soundEnabled ? 'text-brand-400' : 'text-neutral-400 hover:text-brand-400'}`}
                 title={soundEnabled ? 'Mute key sounds' : 'Enable key sounds'}
               >
                 {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleReset(); }}
-                className="hover:text-amber-400 p-2.5 rounded-lg transition-colors"
+                className="hover:text-brand-400 p-2.5 rounded-lg transition-colors"
                 title="Restart (Esc)"
               >
                 <RotateCcw size={16} />
@@ -611,7 +611,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                   top: `${caretY}px`,
                   width: '2.5px',
                   height: `${caretH}px`,
-                  background: '#f59e0b',
+                  background: '#c1863f',
                   borderRadius: '2px',
                   transition: 'left 0.07s ease-out, top 0.07s ease-out, opacity 0.1s',
                   opacity: caretVis ? 1 : 0,
@@ -627,7 +627,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
           {/* Focus overlay */}
           {!isFocused && (
             <div className="absolute inset-0 bg-neutral-950/85 rounded-2xl flex flex-col items-center justify-center gap-2 backdrop-blur-sm transition-all animate-pulse">
-              <Sparkles size={28} className="text-amber-400" />
+              <Keyboard size={28} className="text-brand-400" />
               <p className="text-neutral-300 font-semibold text-sm">Click here to focus &amp; start typing</p>
               <p className="text-neutral-500 text-xs">The clock starts automatically when you type</p>
             </div>
@@ -661,7 +661,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
         /* Results View */
         <div className="p-8 rounded-2xl border border-neutral-800 bg-neutral-900/60 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center gap-3 border-b border-neutral-800 pb-4">
-            <Trophy className="text-amber-400" size={28} />
+            <Trophy className="text-brand-400" size={28} />
             <h2 className="text-xl font-bold text-neutral-100">Practice Completed!</h2>
           </div>
 
@@ -683,10 +683,10 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                   />
                   <YAxis
                     yAxisId="left"
-                    stroke="#e2b714"
+                    stroke="#c1863f"
                     fontSize={12}
                     tickLine={false}
-                    label={{ value: 'wpm', angle: -90, position: 'insideLeft', fill: '#e2b714' }}
+                    label={{ value: 'wpm', angle: -90, position: 'insideLeft', fill: '#c1863f' }}
                   />
                   <YAxis
                     yAxisId="right"
@@ -711,7 +711,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
                     yAxisId="left"
                     type="monotone"
                     dataKey="wpm"
-                    stroke="#e2b714"
+                    stroke="#c1863f"
                     strokeWidth={2}
                     dot={false}
                     name="WPM"
@@ -733,7 +733,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
           {/* Standard Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Speed',         value: <>{wpm} <span className="text-sm font-semibold text-neutral-400">WPM</span></>,  cls: 'text-amber-400 text-3xl sm:text-4xl font-mono' },
+              { label: 'Speed',         value: <>{wpm} <span className="text-sm font-semibold text-neutral-400">WPM</span></>,  cls: 'text-brand-400 text-3xl sm:text-4xl font-mono' },
               { label: 'Accuracy',      value: `${accuracy}%`,  cls: 'text-neutral-200 text-3xl sm:text-4xl font-mono' },
               { label: 'Time Spent',    value: `${timeElapsed}s`, cls: 'text-neutral-200 text-3xl sm:text-4xl font-mono' },
               // Language/Mode is text, not a number — it previously shared
@@ -774,7 +774,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
             <div className={`p-3 rounded-lg text-sm font-medium ${
               saveStatus.includes('saved') || saveStatus.includes('success')
                 ? 'bg-emerald-950/30 border border-emerald-800/50 text-emerald-400'
-                : 'bg-amber-950/30 border border-amber-800/50 text-amber-400'
+                : 'bg-brand-950/30 border border-brand-800/50 text-brand-400'
             }`}>
               {saveStatus}
             </div>
@@ -782,7 +782,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
 
           <button
             onClick={handleReset}
-            className="flex items-center gap-2 w-max bg-amber-500 text-neutral-950 hover:bg-amber-400 px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-amber-500/20 active:scale-95"
+            className="flex items-center gap-2 w-max bg-brand-500 text-neutral-950 hover:bg-brand-400 px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-brand-500/20 active:scale-95"
           >
             <RotateCcw size={18} />
             Try Again
