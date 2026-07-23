@@ -95,7 +95,64 @@ interface TypingPracticeProps {
 interface ChartDataPoint {
   second: number;
   wpm: number;
+  rawWpm: number;
   errors: number;
+  burst: number;
+}
+
+// Monkeytype-style red "x" marker, drawn only on seconds where an error
+// actually happened — recharts calls this for every point, so points with
+// no error render nothing.
+function ErrorDot(props: { cx?: number; cy?: number; payload?: ChartDataPoint }) {
+  const { cx, cy, payload } = props;
+  if (cx === undefined || cy === undefined || !payload || payload.errors <= 0) return null;
+  return (
+    <text
+      x={cx}
+      y={cy}
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontSize={11}
+      fontWeight={700}
+      fill="#ca4754"
+    >
+      ×
+    </text>
+  );
+}
+
+// Dark-themed hover tooltip matching Monkeytype's results chart legend.
+function ResultsTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { payload: ChartDataPoint }[];
+  label?: number | string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const point = payload[0].payload;
+  const rows: { key: string; label: string; value: number; color: string }[] = [
+    { key: 'errors', label: 'errors', value: point.errors, color: '#ca4754' },
+    { key: 'wpm', label: 'wpm', value: point.wpm, color: '#e2b714' },
+    { key: 'raw', label: 'raw', value: point.rawWpm, color: '#b7b7ac' },
+    { key: 'burst', label: 'burst', value: point.burst, color: '#646669' },
+  ];
+  return (
+    <div className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 shadow-xl text-xs min-w-[110px]">
+      <div className="text-neutral-200 font-bold mb-1.5 pb-1 border-b border-neutral-800">{label}</div>
+      <div className="flex flex-col gap-1">
+        {rows.map((row) => (
+          <div key={row.key} className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: row.color }} />
+            <span className="text-neutral-400 flex-1">{row.label}</span>
+            <span className="font-mono font-semibold text-neutral-100">{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function TypingPractice({ onSessionComplete, initialText, isTask = false }: TypingPracticeProps) {
@@ -133,6 +190,14 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   // Advanced Stats Tracking
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const chartIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Read inside the interval instead of being dependencies of the tracking
+  // effect below — otherwise the effect would tear down and restart the
+  // interval (resetting secondCounter to 0) on every keystroke.
+  const typedTextRef = useRef('');
+  const textRef = useRef('');
+  const prevCorrectRef = useRef(0);
+  const prevIncorrectRef = useRef(0);
+  const prevTypedLenRef = useRef(0);
 
   // Generate initial text
   useEffect(() => {
@@ -178,36 +243,53 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
     }
   }, [typedText, text, isStarted, isCompleted, language, mode, initialText]);
 
+  // Keep refs current every render so the interval below always reads the
+  // latest values without needing to restart on every keystroke.
+  useEffect(() => { typedTextRef.current = typedText; }, [typedText]);
+  useEffect(() => { textRef.current = text; }, [text]);
+
+  const safeNum = (n: number) => (Number.isFinite(n) ? n : 0);
+
   // ── Chart Data Tracking (Second-by-Second) ──
   useEffect(() => {
     if (isStarted && !isCompleted) {
       // eslint-disable-next-line
       setChartData([]); // Clear old points
+      prevCorrectRef.current = 0;
+      prevIncorrectRef.current = 0;
+      prevTypedLenRef.current = 0;
       let secondCounter = 0;
-      
+
       chartIntervalRef.current = setInterval(() => {
         secondCounter += 1;
-        
-        // Calculate raw/correct characters at this exact moment
+
+        const currentTyped = typedTextRef.current;
+        const currentTarget = textRef.current;
+
+        // Cumulative correct/incorrect characters at this exact moment
         let currentCorrect = 0;
-        let currentIncorrect = 0;
-        for (let i = 0; i < typedText.length; i++) {
-          if (typedText[i] === text[i]) {
-            currentCorrect++;
-          } else {
-            currentIncorrect++;
-          }
+        for (let i = 0; i < currentTyped.length; i++) {
+          if (currentTyped[i] === currentTarget[i]) currentCorrect++;
         }
-        
-        const currentWpm = Math.round((currentCorrect / 5) / (secondCounter / 60));
-        
+        const currentIncorrect = currentTyped.length - currentCorrect;
+
+        // Deltas since the last tick, for this second's error count and burst
+        const deltaTyped = currentTyped.length - prevTypedLenRef.current;
+        const deltaErrors = Math.max(0, currentIncorrect - prevIncorrectRef.current);
+
+        const minutesElapsed = secondCounter / 60;
+        const wpm = safeNum(Math.round((currentCorrect / 5) / minutesElapsed));
+        const rawWpm = safeNum(Math.round((currentTyped.length / 5) / minutesElapsed));
+        // Burst: instantaneous rate for just this 1-second window
+        const burst = safeNum(Math.max(0, Math.round((deltaTyped / 5) * 60)));
+
+        prevCorrectRef.current = currentCorrect;
+        prevIncorrectRef.current = currentIncorrect;
+        prevTypedLenRef.current = currentTyped.length;
+
         setChartData((prev) => [
           ...prev,
-          {
-            second: secondCounter,
-            wpm: isNaN(currentWpm) || !isFinite(currentWpm) ? 0 : currentWpm,
-            errors: currentIncorrect
-          }
+          { second: secondCounter, wpm, rawWpm, errors: deltaErrors, burst },
         ]);
       }, 1000);
     } else {
@@ -220,7 +302,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
     return () => {
       if (chartIntervalRef.current) clearInterval(chartIntervalRef.current);
     };
-  }, [isStarted, isCompleted, text, typedText]);
+  }, [isStarted, isCompleted]);
 
   // ── Caret + line-scroll tracking ──
   useEffect(() => {
@@ -574,21 +656,63 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
             <h2 className="text-xl font-bold text-neutral-100">Practice Completed!</h2>
           </div>
 
-          {/* Minimalist Monkeytype-Style Chart */}
+          {/* Monkeytype-Style Performance Chart */}
           {chartData.length > 0 && (
-            <div className="w-full h-64 bg-neutral-950/40 p-4 rounded-xl border border-neutral-800/80">
+            <div className="w-full h-64 bg-neutral-950/40 p-4 rounded-xl border border-neutral-800/80 animate-in fade-in duration-500">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
+                <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                   <CartesianGrid stroke="#262626" vertical={false} />
-                  <XAxis dataKey="second" stroke="#737373" fontSize={12} tickLine={false} />
-                  <YAxis yAxisId="left" stroke="#d97706" fontSize={12} tickLine={false} label={{ value: 'wpm', angle: -90, position: 'insideLeft', fill: '#d97706' }} />
-                  <YAxis yAxisId="right" orientation="right" stroke="#ef4444" fontSize={12} tickLine={false} label={{ value: 'errors', angle: 90, position: 'insideRight', fill: '#ef4444' }} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#171717', borderColor: '#262626', borderRadius: '8px' }}
-                    labelStyle={{ color: '#a3a3a3' }}
+                  <XAxis
+                    dataKey="second"
+                    stroke="#737373"
+                    fontSize={12}
+                    tickLine={false}
+                    label={{ value: 'seconds', position: 'insideBottom', offset: -4, fill: '#737373', fontSize: 11 }}
                   />
-                  <Line yAxisId="left" type="monotone" dataKey="wpm" stroke="#d97706" strokeWidth={2} dot={false} name="WPM" />
-                  <Line yAxisId="right" type="monotone" dataKey="errors" stroke="#ef4444" strokeWidth={1} dot={{ r: 2 }} name="Errors" />
+                  <YAxis
+                    yAxisId="left"
+                    stroke="#e2b714"
+                    fontSize={12}
+                    tickLine={false}
+                    label={{ value: 'wpm', angle: -90, position: 'insideLeft', fill: '#e2b714' }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="#ca4754"
+                    fontSize={12}
+                    tickLine={false}
+                    allowDecimals={false}
+                    label={{ value: 'errors', angle: 90, position: 'insideRight', fill: '#ca4754' }}
+                  />
+                  <Tooltip content={<ResultsTooltip />} cursor={{ stroke: '#404040', strokeWidth: 1 }} />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="rawWpm"
+                    stroke="#b7b7ac"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Raw WPM"
+                  />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="wpm"
+                    stroke="#e2b714"
+                    strokeWidth={2}
+                    dot={false}
+                    name="WPM"
+                  />
+                  <Line
+                    yAxisId="right"
+                    dataKey="errors"
+                    stroke="none"
+                    isAnimationActive={false}
+                    dot={<ErrorDot />}
+                    name="Errors"
+                    legendType="none"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
