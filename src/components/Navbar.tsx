@@ -18,6 +18,7 @@ interface UserData {
   courseName?: string;
   batchName?: string;
   avatarUrl?: string | null;
+  slug?: string | null;
 }
 
 export function Navbar() {
@@ -139,8 +140,14 @@ export function Navbar() {
                 <span className="font-mono text-xs font-bold text-neutral-300">{user.points ?? 0} pts</span>
               </div>
 
-              {/* User Label + Avatar */}
-              <div className="hidden md:flex items-center gap-2">
+              {/* User Label + Avatar — clickable through to "your own space":
+                  the public profile for students/general users, the admin
+                  console for admins (who don't have a profile page). Was
+                  previously just a static div with no link at all. */}
+              <Link
+                href={user.role === 'ADMIN' ? '/admin' : `/profile/${user.slug ?? user.id}`}
+                className="hidden md:flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
                 <div className="flex flex-col text-right">
                   <span className="text-xs font-bold text-neutral-200 leading-none">{user.name}</span>
                   {user.role === 'ADMIN' && (
@@ -148,7 +155,7 @@ export function Navbar() {
                   )}
                 </div>
                 <Avatar src={user.avatarUrl} name={user.name} size={30} />
-              </div>
+              </Link>
 
               {/* Mobile quick links */}
               {(user.role === 'STUDENT' || user.role === 'USER') && (
