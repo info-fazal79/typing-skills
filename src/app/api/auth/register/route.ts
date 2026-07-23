@@ -60,6 +60,25 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Verify the submitted roll number is actually on the admin's approved
+      // list for this batch. The register form's dropdown already only
+      // offers approved, unclaimed rolls — but that's UX only; a request
+      // built directly (bypassing the dropdown) could otherwise submit any
+      // string here.
+      const { data: meta } = await supabase
+        .from('metadata')
+        .select('roll_numbers_json')
+        .eq('id', 'selectors')
+        .single();
+
+      const approvedRolls: string[] = meta?.roll_numbers_json?.[batchName.trim()] ?? [];
+      if (!approvedRolls.includes(rollNumber.trim())) {
+        return NextResponse.json(
+          { error: `Roll number ${rollNumber} is not on the approved list for ${batchName}. Contact your admin if this looks wrong.` },
+          { status: 400 }
+        );
+      }
+
       // Verify Roll Number is not already registered in the same batch
       const { data: existingRoll } = await supabase
         .from('users')
@@ -141,7 +160,21 @@ export async function POST(req: NextRequest) {
     }
 
     const { error: insertErr } = await supabase.from('users').insert(userData);
-    if (insertErr) throw insertErr;
+    if (insertErr) {
+      // Postgres unique_violation — the pre-checks above already caught the
+      // common case, but a second registration for the same email or
+      // batch+roll can still land in the tiny window between that check and
+      // this insert. The DB constraint is the real guard; this just keeps
+      // the error message friendly instead of falling through to a generic
+      // 500 when the race actually happens.
+      if (insertErr.code === '23505') {
+        return NextResponse.json(
+          { error: 'That email or roll number was just registered by someone else. Please check your details and try again.' },
+          { status: 409 }
+        );
+      }
+      throw insertErr;
+    }
 
     return NextResponse.json(
       {
