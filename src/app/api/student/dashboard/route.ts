@@ -233,6 +233,27 @@ export async function GET(req: NextRequest) {
       else performanceTrend = 'stable';
     }
 
+    // ── Inactivity penalties logs ─────────────────────────────────────────
+    let totalPenalties = 0;
+    let inactivityLogs: any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */ = [];
+    try {
+      const { data: logs } = await supabase
+        .from('inactivity_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      if (logs) {
+        inactivityLogs = logs.map((log) => ({
+          date: log.date,
+          pointsDeducted: log.points_deducted ?? 0,
+        }));
+        totalPenalties = inactivityLogs.reduce((sum, log) => sum + log.pointsDeducted, 0);
+      }
+    } catch (e) {
+      console.warn('Inactivity logs fetch failed (non-fatal):', e);
+    }
+
     return NextResponse.json({
       user: {
         ...user,
@@ -260,6 +281,8 @@ export async function GET(req: NextRequest) {
         dailyPractice: dailyPracticeHistory,
         recentSessions,
         performanceTrend,
+        totalPenalties,
+        inactivityLogs,
       },
     });
   } catch (error) {

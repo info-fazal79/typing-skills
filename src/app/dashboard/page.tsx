@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [activeTask, setActiveTask] = useState<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>(null);
   const [taskSubmitStatus, setTaskSubmitStatus] = useState<string>('');
   const [taskSubmitError, setTaskSubmitError] = useState<string>('');
+  const [dashboardTab, setDashboardTab] = useState<'general' | 'report'>('general');
 
   const fetchDashboardData = async () => {
     try {
@@ -266,8 +267,37 @@ export default function DashboardPage() {
           )}
         </section>
 
-        {/* ── Stat Cards ── */}
-        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {/* ── Tab Switcher ── */}
+        {user?.role === 'STUDENT' && (
+          <div className="flex border-b border-neutral-800 gap-6 text-xs font-semibold mb-4">
+            <button
+              onClick={() => setDashboardTab('general')}
+              className={`pb-3 relative transition-all ${
+                dashboardTab === 'general'
+                  ? 'text-amber-400 font-bold border-b-2 border-amber-500'
+                  : 'text-neutral-500 hover:text-neutral-300'
+              }`}
+            >
+              General Dashboard
+            </button>
+            <button
+              onClick={() => setDashboardTab('report')}
+              className={`pb-3 relative transition-all ${
+                dashboardTab === 'report'
+                  ? 'text-amber-400 font-bold border-b-2 border-amber-500'
+                  : 'text-neutral-500 hover:text-neutral-300'
+              }`}
+            >
+              Student Report
+            </button>
+          </div>
+        )}
+
+        {/* ── General Dashboard Content ── */}
+        {(!user || user.role !== 'STUDENT' || dashboardTab === 'general') && (
+          <>
+            {/* ── Stat Cards ── */}
+            <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {[
             { label: 'Tests Taken', value: analytics.totalTests, icon: <Hash size={18} />, suffix: '' },
             { label: 'Best WPM', value: analytics.bestWpm, icon: <Zap size={18} />, suffix: ' wpm' },
@@ -498,6 +528,217 @@ export default function DashboardPage() {
               </div>
             )}
           </section>
+        )}
+      </>
+    )}
+
+        {/* ── Student Report Content ── */}
+        {user?.role === 'STUDENT' && dashboardTab === 'report' && (
+          <div className="flex flex-col gap-6">
+            
+            {/* Upper row: Penalty Counter & Assignment Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Inactivity Penalty Counter Card */}
+              <div className="bg-red-950/20 border border-red-900/40 p-5 rounded-2xl flex flex-col justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Inactivity Penalty Tracker</span>
+                    <h3 className="text-lg font-black text-neutral-100 mt-1">Accumulated Penalties</h3>
+                  </div>
+                  <div className="p-2 bg-red-950 border border-red-900/60 rounded-xl text-red-400">
+                    <AlertCircle size={20} />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-4xl font-black font-mono text-red-500">
+                    -{analytics.totalPenalties ?? 0} <span className="text-xs text-neutral-400 uppercase font-semibold">pts</span>
+                  </span>
+                  <p className="text-[11px] text-neutral-500 font-semibold leading-relaxed">
+                    Deducted from your total score for missing the daily batch practice target.
+                  </p>
+                </div>
+              </div>
+
+              {/* Assignment Summary Card */}
+              <div className="md:col-span-2 bg-[#1d1e22]/20 border border-neutral-800 p-5 rounded-2xl flex flex-col justify-between gap-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Assignment Summary</span>
+                    <h3 className="text-lg font-black text-neutral-100 mt-1">Typing Tasks Overview</h3>
+                  </div>
+                  <div className="p-2 bg-neutral-950 border border-neutral-800 rounded-xl text-amber-500">
+                    <BookOpen size={20} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Assigned Tasks', value: tasks.length, color: 'text-neutral-200' },
+                    { label: 'Completed', value: tasks.filter((t: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => t.status === 'COMPLETED').length, color: 'text-emerald-400' },
+                    { label: 'Past-due / Missed', value: tasks.filter((t: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => t.status === 'MISSED').length, color: 'text-red-400' },
+                    { 
+                      label: 'Completion Rate', 
+                      value: `${tasks.length ? Math.round((tasks.filter((t: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => t.status === 'COMPLETED').length / tasks.length) * 100) : 0}%`, 
+                      color: 'text-amber-400' 
+                    },
+                  ].map((stat, idx) => (
+                    <div key={idx} className="bg-neutral-950/40 border border-neutral-800/60 p-3.5 rounded-xl flex flex-col gap-1">
+                      <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider">{stat.label}</span>
+                      <span className={`text-xl font-black font-mono ${stat.color}`}>{stat.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Attendance & Tracker Calendar View */}
+            <div className="bg-[#1d1e22]/20 border border-neutral-800 p-5 rounded-2xl flex flex-col gap-4">
+              <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
+                <Calendar className="text-amber-500" size={18} />
+                <div className="flex flex-col">
+                  <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider">Daily Target Tracker</h3>
+                  <span className="text-[10px] text-neutral-500 font-semibold">Attendance log for the last 30 days</span>
+                </div>
+              </div>
+
+              {/* Grid visualizer */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-10 gap-3 pt-2">
+                {(() => {
+                  const days = [];
+                  for (let i = 29; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const dateStr = d.toISOString().split('T')[0];
+
+                    const log = analytics.inactivityLogs?.find((l: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => l.date === dateStr);
+                    const sessionsOnDay = analytics.recentSessions?.filter((s: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => s.createdAtISO?.split('T')[0] === dateStr) || [];
+                    const totalSeconds = sessionsOnDay.reduce((sum: number, s: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => sum + (s.duration || 0), 0);
+                    const totalMins = Math.round(totalSeconds / 60);
+
+                    let status: 'met' | 'missed' | 'none' = 'none';
+                    if (log) {
+                      status = log.pointsDeducted > 0 ? 'missed' : 'met';
+                    } else if (totalMins > 0) {
+                      status = totalMins >= targets.targetMinutes ? 'met' : 'none';
+                    }
+
+                    days.push({ dateStr, dayLabel: d.getDate(), monthLabel: d.toLocaleDateString(undefined, { month: 'short' }), status, mins: totalMins });
+                  }
+
+                  return days.map((day, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`p-2.5 rounded-xl border flex flex-col items-center justify-between gap-1.5 transition-colors text-center ${
+                        day.status === 'met'
+                          ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+                          : day.status === 'missed'
+                          ? 'bg-red-500/10 border-red-500/25 text-red-400'
+                          : 'bg-neutral-900 border-neutral-800 text-neutral-500'
+                      }`}
+                    >
+                      <span className="text-[9px] font-bold uppercase tracking-wider">{day.monthLabel}</span>
+                      <span className="text-base font-black font-mono">{day.dayLabel}</span>
+                      <span className="text-[8px] font-bold font-mono">
+                        {day.status === 'met' ? 'MET' : day.status === 'missed' ? 'MISSED' : '—'}
+                      </span>
+                    </div>
+                  ));
+                })()}
+              </div>
+
+              <div className="flex flex-wrap gap-4 text-[10px] text-neutral-500 font-bold uppercase mt-3 pt-3 border-t border-neutral-900">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-emerald-500/10 border border-emerald-500/25 inline-block" />
+                  <span>Target Achieved ({targets.targetMinutes}m+)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-red-500/10 border border-red-500/25 inline-block" />
+                  <span>Target Missed</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded bg-neutral-900 border border-neutral-800 inline-block" />
+                  <span>No Target Check</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Progress Charts & analytics logs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Progress: Target Speeds */}
+              <div className="bg-[#1d1e22]/20 border border-neutral-800 p-5 rounded-2xl flex flex-col gap-4">
+                <div className="flex items-center gap-2 border-b border-neutral-800 pb-2">
+                  <TrendingUp className="text-amber-500" size={16} />
+                  <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider">Target Performance Speed</h3>
+                </div>
+                <div className="h-48 flex items-end justify-between gap-2 px-2 pt-4">
+                  {(() => {
+                    const completedTasks = tasks.filter((t: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => t.status === 'COMPLETED');
+                    if (completedTasks.length === 0) {
+                      return (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-neutral-500 font-medium">
+                          No completed tasks/assignments yet.
+                        </div>
+                      );
+                    }
+                    return completedTasks.map((t: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, idx: number) => {
+                      const maxWpm = Math.max(...completedTasks.map((x: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => x.submission?.wpm || 1), 60);
+                      const heightPct = Math.max(10, ((t.submission?.wpm || 0) / maxWpm) * 100);
+                      return (
+                        <div key={idx} className="flex flex-col items-center gap-2 flex-1">
+                          <span className="text-[10px] font-bold font-mono text-emerald-400">{Math.round(t.submission?.wpm)} WPM</span>
+                          <div 
+                            className="w-full bg-emerald-500/40 hover:bg-emerald-500/60 rounded-t transition-all duration-300"
+                            style={{ height: `${heightPct}%` }}
+                            title={`WPM: ${t.submission?.wpm}`}
+                          />
+                          <span className="text-[9px] font-bold text-neutral-400 truncate max-w-[80px]" title={t.title}>
+                            {t.title}
+                          </span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+                <p className="text-[10px] text-neutral-500 text-center uppercase tracking-wider font-semibold">Speed achieved in recent assignments</p>
+              </div>
+
+              {/* Progress: Recent Activity Logs List */}
+              <div className="bg-[#1d1e22]/20 border border-neutral-800 p-5 rounded-2xl flex flex-col gap-4">
+                <div className="flex items-center gap-2 border-b border-neutral-800 pb-2">
+                  <Clock className="text-amber-500" size={16} />
+                  <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider">Inactivity Log History</h3>
+                </div>
+
+                <div className="max-h-48 overflow-y-auto divide-y divide-neutral-900 flex flex-col">
+                  {(!analytics.inactivityLogs || analytics.inactivityLogs.length === 0) ? (
+                    <div className="py-12 text-center text-xs text-neutral-500 font-medium">
+                      No inactivity penalty logs recorded.
+                    </div>
+                  ) : (
+                    analytics.inactivityLogs.map((log: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, idx: number) => (
+                      <div key={idx} className="py-2.5 flex justify-between items-center text-xs">
+                        <span className="font-mono text-neutral-400 font-semibold">{log.date}</span>
+                        {log.pointsDeducted > 0 ? (
+                          <span className="bg-red-500/10 border border-red-500/20 text-red-400 font-bold px-2 py-0.5 rounded text-[10px] font-mono">
+                            -{log.pointsDeducted} pts
+                          </span>
+                        ) : (
+                          <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded text-[10px] font-mono">
+                            Target Met
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
         )}
 
       </main>

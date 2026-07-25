@@ -10,7 +10,12 @@ import {
 } from 'lucide-react';
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'approvals' | 'directory' | 'tasks' | 'targets' | 'metadata'>('approvals');
+  const [activeTab, setActiveTab] = useState<'approvals' | 'directory' | 'tasks' | 'targets' | 'metadata' | 'report'>('approvals');
+  
+  // Student Report Tab States
+  const [reportFilterBatch, setReportFilterBatch] = useState('');
+  const [reportList, setReportList] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
+  const [reportLoading, setReportLoading] = useState(false);
   
   // Data States
   const [students, setStudents] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
@@ -24,13 +29,13 @@ export default function AdminPage() {
 
   // Metadata Form States
   const [newCourse, setNewCourse] = useState('');
-  const [selectedCourseForBatch, setSelectedCourseForBatch] = useState('');
   const [newBatch, setNewBatch] = useState('');
+  const [selectedCourseForBatch, setSelectedCourseForBatch] = useState('');
+
   const [selectedBatchForRoll, setSelectedBatchForRoll] = useState('');
   const [newRoll, setNewRoll] = useState('');
 
-
-  // Filter States for Student Directory
+  // Form States - Filter Students
   const [filterCourse, setFilterCourse] = useState('');
   const [filterBatch, setFilterBatch] = useState('');
   const [filterRoll, setFilterRoll] = useState('');
@@ -51,6 +56,7 @@ export default function AdminPage() {
   const [targetBatchName, setTargetBatchName] = useState('');
   const [targetMins, setTargetMins] = useState('5');
   const [targetPenalty, setTargetPenalty] = useState('10');
+  const [targetTypingType, setTargetTypingType] = useState('English');
 
   // Load Admin Data
   const loadAdminData = useCallback(async () => {
@@ -99,10 +105,73 @@ export default function AdminPage() {
     }
   }, [filterCourse, filterBatch, filterRoll, filterStatus, filterRole, showError]);
 
+  const fetchReportData = useCallback(async () => {
+    setReportLoading(true);
+    try {
+      const res = await fetch('/api/admin/reports');
+      const json = await res.json();
+      setReportList(json.report || []);
+    } catch (e) {
+      console.error(e);
+      showError('Failed to fetch student reports');
+    } finally {
+      setReportLoading(false);
+    }
+  }, [showError]);
+
+  const handleExportReportCSV = () => {
+    if (!reportFilterBatch) {
+      showError('Please select a batch to export.');
+      return;
+    }
+    const filtered = reportList.filter(r => r.batch === reportFilterBatch);
+    if (filtered.length === 0) {
+      showError('No student records found in this batch.');
+      return;
+    }
+
+    const headers = [
+      'Student Name',
+      'Roll Number',
+      'English Practice (Mins)',
+      'Bangla Practice (Mins)',
+      'Assignment Completion Rate',
+      'Inactivity Penalty',
+      'Total Points'
+    ];
+
+    const rows = filtered.map(r => [
+      `"${r.name}"`,
+      `"${r.rollNumber}"`,
+      r.englishMinutes,
+      r.banglaMinutes,
+      `"${r.taskCompletions}/${r.totalAssignedTasks}"`,
+      `"-${r.penalties}"`,
+      r.points
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Student_Report_${reportFilterBatch}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAdminData();
   }, [loadAdminData]);
+
+  useEffect(() => {
+    if (activeTab === 'report') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchReportData();
+    }
+  }, [activeTab, fetchReportData]);
 
   // Update Student Status (Approve/Reject/Suspend)
   const handleUpdateStatus = async (studentId: string, status: string) => {
@@ -248,9 +317,10 @@ export default function AdminPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          batchName: targetBatchName,
+          batchId: targetBatchName,
+          typingType: targetTypingType,
           dailyTargetMinutes: targetMins,
-          pointsDeduction: targetPenalty,
+          penaltyPoints: targetPenalty,
         }),
       });
 
@@ -258,6 +328,7 @@ export default function AdminPage() {
       if (res.ok) {
         showSuccess(data.message);
         setTargetBatchName('');
+        setTargetTypingType('English');
         setTargetMins('5');
         setTargetPenalty('10');
         loadAdminData();
@@ -397,6 +468,7 @@ export default function AdminPage() {
             { id: 'tasks', label: 'Task Assignments', count: tasks.length },
             { id: 'targets', label: 'Inactivity targets', count: targets.length },
             { id: 'metadata', label: 'Registration Options', count: 0 },
+            { id: 'report', label: 'Student Report', count: 0 },
 
           ].map((tab) => (
             <button
@@ -882,14 +954,30 @@ export default function AdminPage() {
                   <form onSubmit={handleUpsertTarget} className="flex flex-col gap-4 text-xs">
                     <div className="flex flex-col gap-1">
                       <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Batch Name</label>
-                      <input
-                        type="text"
+                      <select
                         required
                         value={targetBatchName}
                         onChange={(e) => setTargetBatchName(e.target.value)}
-                        placeholder="e.g. Batch-2026-A"
                         className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40"
-                      />
+                      >
+                        <option value="">— Select Batch —</option>
+                        {Array.from(new Set(Object.values(metadata.courses).flat())).sort().map((batchName) => (
+                          <option key={batchName} value={batchName}>{batchName}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Typing Language/Type</label>
+                      <select
+                        required
+                        value={targetTypingType}
+                        onChange={(e) => setTargetTypingType(e.target.value)}
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40"
+                      >
+                        <option value="English">English</option>
+                        <option value="Bangla">Bangla</option>
+                      </select>
                     </div>
 
                     <div className="flex flex-col gap-1">
@@ -942,7 +1030,12 @@ export default function AdminPage() {
                           className="p-4 rounded-xl border border-neutral-800 bg-surface/10 flex flex-col justify-between gap-2"
                         >
                           <div className="flex justify-between items-start border-b border-neutral-900 pb-2">
-                            <span className="font-bold text-sm text-neutral-200 font-mono">{t.batchName}</span>
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold text-sm text-neutral-200 font-mono">{t.batchName}</span>
+                              <span className="text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20 px-1.5 py-0.5 rounded font-bold font-mono w-max">
+                                {t.typingType}
+                              </span>
+                            </div>
                             <span className="text-[11px] bg-red-500/15 text-red-400 border border-red-500/10 px-1.5 py-0.5 rounded font-bold font-mono">
                               -{t.pointsDeduction} pts/day
                             </span>
@@ -1207,6 +1300,113 @@ export default function AdminPage() {
                   )}
                 </div>
 
+              </div>
+            )}
+
+            {/* 6. Student Report Directory & Export Tab */}
+            {activeTab === 'report' && (
+              <div className="flex flex-col gap-6 bg-neutral-900/10 border border-neutral-800 p-6 rounded-2xl shadow-xl">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-neutral-800 pb-4">
+                  <div>
+                    <h2 className="text-lg font-black text-neutral-100 flex items-center gap-2">
+                      <Sliders size={20} className="text-brand-500" />
+                      Student Progress & Inactivity Reports
+                    </h2>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      Monitor batch typing progress, inactivity penalties, and assignment rates.
+                    </p>
+                  </div>
+                  
+                  {/* Export button */}
+                  <button
+                    onClick={handleExportReportCSV}
+                    disabled={!reportFilterBatch}
+                    className="flex items-center gap-2 bg-brand-500 text-neutral-950 hover:bg-brand-400 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2.5 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md"
+                  >
+                    <Download size={14} />
+                    Export Batch CSV
+                  </button>
+                </div>
+
+                {/* Filter */}
+                <div className="flex flex-col gap-2 max-w-xs">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Select Batch to View Reports</label>
+                  <select
+                    value={reportFilterBatch}
+                    onChange={(e) => setReportFilterBatch(e.target.value)}
+                    className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 text-xs font-semibold focus:outline-hidden focus:border-brand-500/40"
+                  >
+                    <option value="">— Select Batch —</option>
+                    {Array.from(new Set(Object.values(metadata.courses).flat())).sort().map((batchName) => (
+                      <option key={batchName} value={batchName}>{batchName}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Data Table */}
+                {!reportFilterBatch ? (
+                  <div className="p-12 text-center text-sm text-neutral-500 font-semibold bg-neutral-950/20 border border-neutral-800/40 rounded-xl">
+                    Select a batch from the dropdown above to view the directory report.
+                  </div>
+                ) : reportLoading ? (
+                  <div className="p-12 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-400 border-r-2 border-transparent mx-auto" />
+                    <p className="text-xs text-neutral-500 mt-2 font-semibold">Loading student records...</p>
+                  </div>
+                ) : reportList.filter(r => r.batch === reportFilterBatch).length === 0 ? (
+                  <div className="p-12 text-center text-sm text-neutral-500 font-semibold bg-neutral-950/20 border border-neutral-800/40 rounded-xl">
+                    No approved students found in this batch.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border border-neutral-800/60 rounded-xl bg-neutral-950/20">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-neutral-800/80 bg-neutral-950/40 text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
+                          <th className="py-3 px-4">Student Info</th>
+                          <th className="py-3 px-4">English Progress</th>
+                          <th className="py-3 px-4">Bangla Progress</th>
+                          <th className="py-3 px-4">Assignments</th>
+                          <th className="py-3 px-4 text-right">Inactivity Penalty</th>
+                          <th className="py-3 px-4 text-right pr-6">Total Points</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-900/60">
+                        {reportList
+                          .filter((r) => r.batch === reportFilterBatch)
+                          .map((student) => (
+                            <tr key={student.id} className="hover:bg-neutral-900/30 transition-colors">
+                              <td className="py-4 px-4">
+                                <div className="font-bold text-neutral-200">{student.name}</div>
+                                <div className="text-[10px] text-neutral-500 font-semibold mt-0.5">Roll: {student.rollNumber}</div>
+                              </td>
+                              <td className="py-4 px-4 font-mono font-semibold text-sky-400">
+                                {student.englishMinutes} <span className="text-[9px] text-neutral-500">mins</span>
+                              </td>
+                              <td className="py-4 px-4 font-mono font-semibold text-emerald-400">
+                                {student.banglaMinutes} <span className="text-[9px] text-neutral-500">mins</span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="font-semibold text-neutral-300">
+                                  {student.taskCompletions} / {student.totalAssignedTasks}
+                                </div>
+                                <div className="text-[9px] text-neutral-500 font-semibold mt-0.5">
+                                  {student.totalAssignedTasks > 0
+                                    ? `${Math.round((student.taskCompletions / student.totalAssignedTasks) * 100)}% completed`
+                                    : 'No tasks assigned'}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4 text-right font-mono font-bold text-red-500">
+                                -{student.penalties} <span className="text-[9px] text-neutral-500 font-semibold">pts</span>
+                              </td>
+                              <td className="py-4 px-4 text-right pr-6 font-bold font-mono text-brand-400">
+                                {student.points} <span className="text-[9px] text-neutral-500 font-semibold uppercase">pts</span>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </>

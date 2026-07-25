@@ -19,33 +19,80 @@ export async function GET(req: NextRequest) {
 
     const studentIds = (students || []).map((s) => s.id);
 
-    // Two batched queries instead of two queries PER student (was 2n+1 DB
-    // round trips for n students — every session/submission for the whole
-    // student body fetched, then grouped in JS in a single pass each).
-    const [sessionsResult, submissionsResult] = await Promise.all([
+    // Fetch all tasks to know task counts by batch
+    const { data: allTasks } = await supabase.from('tasks').select('id, batches');
+    const tasksByBatch = new Map<string, string[]>(); // batch_name -> array of task_ids
+    for (const t of allTasks || []) {
+      for (const b of t.batches || []) {
+        const list = tasksByBatch.get(b);
+        if (list) list.push(t.id);
+        else tasksByBatch.set(b, [t.id]);
+      }
+    }
+
+    // Fetch batch data for students
+    const [sessionsResult, submissionsResult, inactivityLogsResult] = await Promise.all([
       studentIds.length > 0
-        ? supabase.from('practice_sessions').select('user_id, duration, wpm, accuracy').in('user_id', studentIds)
-        : Promise.resolve({ data: [] as { user_id: string; duration: number | null; wpm: number; accuracy: number }[] }),
+        ? supabase.from('practice_sessions').select('user_id, duration, wpm, accuracy, language').in('user_id', studentIds)
+        : Promise.resolve({ data: [] }),
       studentIds.length > 0
-        ? supabase.from('task_submissions').select('user_id').in('user_id', studentIds)
-        : Promise.resolve({ data: [] as { user_id: string }[] }),
+        ? supabase.from('task_submissions').select('user_id, task_id').in('user_id', studentIds)
+        : Promise.resolve({ data: [] }),
+      studentIds.length > 0
+        ? supabase.from('inactivity_logs').select('user_id, points_deducted').in('user_id', studentIds)
+        : Promise.resolve({ data: [] }),
     ]);
 
-    const sessionsByUser = new Map<string, { duration: number | null; wpm: number; accuracy: number }[]>();
+    // Group practice sessions by user
+    const sessionsByUser = new Map<string, any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>();
     for (const s of sessionsResult.data || []) {
       const list = sessionsByUser.get(s.user_id);
       if (list) list.push(s);
       else sessionsByUser.set(s.user_id, [s]);
     }
 
-    const completionsByUser = new Map<string, number>();
+    // Group submissions by user
+    const submissionsByUser = new Map<string, Set<string>>();
     for (const sub of submissionsResult.data || []) {
-      completionsByUser.set(sub.user_id, (completionsByUser.get(sub.user_id) ?? 0) + 1);
+      let set = submissionsByUser.get(sub.user_id);
+      if (!set) {
+        set = new Set<string>();
+        submissionsByUser.set(sub.user_id, set);
+      }
+      set.add(sub.task_id);
+    }
+
+    // Group penalties by user
+    const penaltiesByUser = new Map<string, number>();
+    for (const log of inactivityLogsResult.data || []) {
+      const current = penaltiesByUser.get(log.user_id) ?? 0;
+      penaltiesByUser.set(log.user_id, current + (log.points_deducted || 0));
     }
 
     const reportData = (students || []).map((student) => {
       const sessions = sessionsByUser.get(student.id) ?? [];
       const sessionCount = sessions.length;
+
+      // Group practice time by language
+      const englishSeconds = sessions
+        .filter((s) => (s.language || '').toUpperCase() === 'ENGLISH')
+        .reduce((sum, s) => sum + (s.duration ?? 0), 0);
+      const banglaSeconds = sessions
+        .filter((s) => (s.language || '').toUpperCase() === 'BANGLA')
+        .reduce((sum, s) => sum + (s.duration ?? 0), 0);
+
+      const englishMinutes = Math.round(englishSeconds / 60);
+      const banglaMinutes = Math.round(banglaSeconds / 60);
+
+      // Tasks completion rates
+      const assignedTaskIds = tasksByBatch.get(student.batch_name || '') || [];
+      const totalAssignedTasks = assignedTaskIds.length;
+      
+      const userSubs = submissionsByUser.get(student.id);
+      const completedTasks = userSubs 
+        ? assignedTaskIds.filter((tid) => userSubs.has(tid)).length
+        : 0;
+
       const totalDurationSeconds = sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0);
       const totalPracticeMinutes = Math.round(totalDurationSeconds / 60);
       const avgWpm =
@@ -70,7 +117,11 @@ export async function GET(req: NextRequest) {
         averageWpm: avgWpm,
         averageAccuracy: avgAccuracy,
         totalMinutesPracticed: totalPracticeMinutes,
-        taskCompletions: completionsByUser.get(student.id) ?? 0,
+        englishMinutes,
+        banglaMinutes,
+        taskCompletions: completedTasks,
+        totalAssignedTasks,
+        penalties: penaltiesByUser.get(student.id) ?? 0,
         joinDate: new Date(student.created_at).toLocaleDateString(),
       };
     });
@@ -84,3 +135,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
