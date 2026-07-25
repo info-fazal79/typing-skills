@@ -335,7 +335,9 @@ export default function DashboardPage() {
             <div className="p-5 rounded-lg border border-neutral-800 bg-surface/20 flex flex-col justify-between gap-3">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Daily Goal</span>
+                  <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
+                    Daily Goal ({(targets.targetLanguage || 'English').toUpperCase()})
+                  </span>
                   <h3 className="text-base font-bold text-neutral-100 mt-0.5">
                     {targets.todayMinutesPracticed} / {targets.targetMinutes} mins
                   </h3>
@@ -351,7 +353,10 @@ export default function DashboardPage() {
                     style={{ width: `${targets.percentComplete}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[11px] font-bold text-neutral-500 uppercase tracking-wider mt-1.5">
+                <p className="text-[9px] text-neutral-500 font-semibold mt-1.5 uppercase tracking-wider">
+                  Only {targets.targetLanguage || 'English'} practice counts {"towards today's goal"}
+                </p>
+                <div className="flex justify-between text-[11px] font-bold text-neutral-500 uppercase tracking-wider mt-1.5 pt-1.5 border-t border-neutral-900">
                   <span>{targets.percentComplete}% completed</span>
                   <span>Penalty: −{targets.pointsDeduction} pts/day</span>
                 </div>

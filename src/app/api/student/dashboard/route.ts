@@ -32,16 +32,19 @@ export async function GET(req: NextRequest) {
     // ── Batch targets (STUDENT only) ──────────────────────────────────────
     let targetMinutes = 5;
     let pointsDeduction = 10;
+    let targetLanguage = 'English';
     if (batchName) {
       try {
-        const { data: batchTarget } = await supabase
+        const { data: batchTargets } = await supabase
           .from('batch_targets')
           .select('*')
-          .eq('batch_name', batchName)
-          .single();
-        if (batchTarget) {
-          targetMinutes = batchTarget.daily_target_minutes ?? 5;
-          pointsDeduction = batchTarget.points_deduction ?? 10;
+          .eq('batch_name', batchName);
+        
+        const activeTarget = batchTargets && batchTargets.length > 0 ? batchTargets[0] : null;
+        if (activeTarget) {
+          targetMinutes = activeTarget.daily_target_minutes ?? 5;
+          pointsDeduction = activeTarget.points_deduction ?? 10;
+          targetLanguage = activeTarget.typing_type || 'English';
         }
       } catch (e) {
         console.warn('batch_targets fetch failed (non-fatal):', e);
@@ -57,11 +60,18 @@ export async function GET(req: NextRequest) {
     try {
       const { data: todaySessions } = await supabase
         .from('practice_sessions')
-        .select('duration')
+        .select('duration, language')
         .eq('user_id', user.id)
         .gte('created_at', dayStart)
         .lte('created_at', dayEnd);
-      todaySecondsPracticed = (todaySessions || []).reduce((sum, d) => sum + (d.duration ?? 0), 0);
+      
+      const filteredSessions = (todaySessions || []).filter(s => {
+        const sessionLang = (s.language || '').trim().toLowerCase();
+        const ruleLang = targetLanguage.trim().toLowerCase();
+        return sessionLang === ruleLang;
+      });
+
+      todaySecondsPracticed = filteredSessions.reduce((sum, d) => sum + (d.duration ?? 0), 0);
     } catch (e) {
       console.warn('Today sessions fetch failed (non-fatal):', e);
     }
@@ -266,6 +276,7 @@ export async function GET(req: NextRequest) {
       targets: {
         targetMinutes,
         pointsDeduction,
+        targetLanguage,
         todayMinutesPracticed: Math.round(todaySecondsPracticed / 60),
         todaySecondsPracticed,
         percentComplete: Math.min(100, Math.round((todaySecondsPracticed / (targetMinutes * 60)) * 100)),
@@ -289,7 +300,7 @@ export async function GET(req: NextRequest) {
     console.error('Dashboard error:', error);
     return NextResponse.json({
       user: null,
-      targets: { targetMinutes: 5, pointsDeduction: 10, todayMinutesPracticed: 0, todaySecondsPracticed: 0, percentComplete: 0 },
+      targets: { targetMinutes: 5, pointsDeduction: 10, targetLanguage: 'English', todayMinutesPracticed: 0, todaySecondsPracticed: 0, percentComplete: 0 },
       tasks: [],
       analytics: { totalTests: 0, bestWpm: 0, avgWpm: 0, avgAccuracy: 0, sessions: [], dailyPractice: [], recentSessions: [], performanceTrend: 'new' },
       _error: (error instanceof Error ? error.message : 'Unknown error'),
