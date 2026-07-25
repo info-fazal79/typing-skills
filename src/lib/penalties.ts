@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { toLocalDateString, localDateBoundsUTC, localDateDaysAgo, nextLocalDate } from './date';
+import { fetchBatchTarget } from './batchTargets';
 
 /**
  * Checks and applies daily inactivity penalties for a student retrospectively.
@@ -20,12 +22,7 @@ export async function applyInactivityPenalties(userId: string) {
     let penaltyPoints = 10;
 
     if (user.batch_name) {
-      const { data: batchTarget } = await supabase
-        .from('batch_targets')
-        .select('*')
-        .eq('batch_name', user.batch_name)
-        .single();
-
+      const batchTarget = await fetchBatchTarget(user.batch_name);
       if (batchTarget) {
         targetMinutes = batchTarget.daily_target_minutes ?? 5;
         penaltyPoints = batchTarget.points_deduction ?? 10;
@@ -35,19 +32,17 @@ export async function applyInactivityPenalties(userId: string) {
     const targetSeconds = targetMinutes * 60;
     const now = new Date();
 
-    // Start from lastPenaltyCheck, check up to yesterday
+    // Start from lastPenaltyCheck, check up to yesterday — in institute-local
+    // calendar days, not UTC, so the boundary lines up with midnight where
+    // the institute actually is rather than flipping mid-evening/morning.
     const lastCheck = user.last_penalty_check
       ? new Date(user.last_penalty_check)
       : new Date(user.created_at || now);
 
-    const startCheckDate = new Date(lastCheck);
-    startCheckDate.setUTCHours(0, 0, 0, 0);
+    const startDateStr = toLocalDateString(lastCheck);
+    const yesterdayDateStr = localDateDaysAgo(1);
 
-    const yesterday = new Date(now);
-    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-    yesterday.setUTCHours(23, 59, 59, 999);
-
-    if (startCheckDate >= yesterday) return;
+    if (startDateStr >= yesterdayDateStr) return;
 
     // Build every calendar date in the gap up front, then fetch everything
     // needed for the whole range in two queries — not one (or two) query per
@@ -56,14 +51,14 @@ export async function applyInactivityPenalties(userId: string) {
     // this (dashboard load, practice save, task submit), which could hang or
     // time out the request entirely with zero progress saved.
     const dateStrs: string[] = [];
-    const cursor = new Date(startCheckDate);
-    while (cursor <= yesterday) {
-      dateStrs.push(cursor.toISOString().split('T')[0]);
-      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    let cursor = startDateStr;
+    while (cursor <= yesterdayDateStr) {
+      dateStrs.push(cursor);
+      cursor = nextLocalDate(cursor);
     }
 
-    const rangeStart = `${dateStrs[0]}T00:00:00.000Z`;
-    const rangeEnd = `${dateStrs[dateStrs.length - 1]}T23:59:59.999Z`;
+    const rangeStart = localDateBoundsUTC(dateStrs[0]).startUTC.toISOString();
+    const rangeEnd = localDateBoundsUTC(dateStrs[dateStrs.length - 1]).endUTC.toISOString();
 
     // Which of these dates were already checked in a previous call? The
     // inactivity_logs table may not exist in every deployment yet — degrade
@@ -94,7 +89,7 @@ export async function applyInactivityPenalties(userId: string) {
 
     const secondsByDate = new Map<string, number>();
     for (const s of sessionsSnap || []) {
-      const dateStr = new Date(s.created_at).toISOString().split('T')[0];
+      const dateStr = toLocalDateString(new Date(s.created_at));
       secondsByDate.set(dateStr, (secondsByDate.get(dateStr) ?? 0) + (s.duration ?? 0));
     }
 

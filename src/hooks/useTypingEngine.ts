@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { normalizeTypingText } from '@/utils/textNormalize';
+import { compareClusters } from '@/utils/banglaGraphemes';
 
 export function useTypingEngine(targetText: string, durationLimitSeconds: number = 30) {
   const [typedText, setTypedText] = useState('');
@@ -9,6 +11,20 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const pauseStartRef = useRef<number | null>(null);
+
+  const startTicking = useCallback(() => {
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setIsCompleted(true);
+          if (timerRef.current) clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
 
   // Reset engine — clears all state and restarts with new duration
   const resetEngine = useCallback((newDuration?: number) => {
@@ -19,30 +35,58 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
     setTimeLeft(dur);
     setTotalAttempts(0);
     startTimeRef.current = null;
+    pauseStartRef.current = null;
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
   }, [durationLimitSeconds]);
 
+  // Pause/resume the countdown (and shift the elapsed-time baseline on
+  // resume) so switching tabs or losing focus mid-test doesn't burn down
+  // the timer or count against WPM/accuracy — previously the interval kept
+  // ticking and elapsed time kept accruing regardless of focus.
+  const setPaused = useCallback((paused: boolean) => {
+    if (!isStarted || isCompleted) return;
+
+    if (paused) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (pauseStartRef.current === null) {
+        pauseStartRef.current = Date.now();
+      }
+    } else {
+      if (pauseStartRef.current !== null) {
+        const pausedMs = Date.now() - pauseStartRef.current;
+        if (startTimeRef.current !== null) {
+          startTimeRef.current += pausedMs;
+        }
+        pauseStartRef.current = null;
+      }
+      if (!timerRef.current) {
+        startTicking();
+      }
+    }
+  }, [isStarted, isCompleted, startTicking]);
+
   // Handle typing input changes
-  const handleInputChange = useCallback((value: string) => {
+  const handleInputChange = useCallback((rawValue: string) => {
     if (isCompleted) return;
+
+    // Normalize before comparing anything against targetText — some Bangla
+    // input methods (Bijoy Unicode among them) can emit a precomposed
+    // nukta letter or wrap a conjunct in invisible joiners, either of which
+    // would otherwise never byte-match a target string built from the same
+    // normalized form. See utils/textNormalize.ts for the full rationale.
+    const value = normalizeTypingText(rawValue);
 
     // Start timer on first keystroke
     if (!isStarted && value.length > 0) {
       setIsStarted(true);
       startTimeRef.current = Date.now();
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            setIsCompleted(true);
-            if (timerRef.current) clearInterval(timerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      startTicking();
     }
 
     // Track total keystrokes (forward only, not backspace)
@@ -61,7 +105,7 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
 
     // Clamp to target length — do NOT auto-complete; rely on timer
     setTypedText(value.length > targetText.length ? value.substring(0, targetText.length) : value);
-  }, [isStarted, isCompleted, typedText, targetText]);
+  }, [isStarted, isCompleted, typedText, targetText, startTicking]);
 
   // Sync timeLeft when durationLimitSeconds changes before test starts
   useEffect(() => {
@@ -79,16 +123,12 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
   }, []);
 
   // ── Compute live stats ─────────────────────────────────────────────────────
-  let correctChars = 0;
-  let incorrectChars = 0;
-
-  for (let i = 0; i < typedText.length; i++) {
-    if (typedText[i] === targetText[i]) {
-      correctChars++;
-    } else {
-      incorrectChars++;
-    }
-  }
+  // Scored per grapheme cluster (a whole Bangla conjunct, or a single code
+  // unit for everything else) so a typo inside a conjunct counts the whole
+  // conjunct wrong instead of just the one code unit that differs — this
+  // keeps accuracy/WPM in agreement with the per-conjunct coloring shown in
+  // the typing UI. No-op for English/Latin text.
+  const { correctChars, incorrectChars } = compareClusters(typedText, targetText);
 
   // eslint-disable-next-line
   const timeElapsed = startTimeRef.current
@@ -120,5 +160,6 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
     timeElapsed: Math.round(effectiveTime),
     handleInputChange,
     resetEngine,
+    setPaused,
   };
 }

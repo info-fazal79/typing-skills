@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // 2MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export async function POST(req: NextRequest) {
   try {
+    if (!checkRateLimit(req, 'avatar-upload', 10, 15 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: 'Too many uploads. Please try again in a few minutes.' },
+        { status: 429 }
+      );
+    }
+
     const user = await getUserFromRequest(req);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
