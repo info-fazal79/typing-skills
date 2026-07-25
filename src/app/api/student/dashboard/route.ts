@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 import { applyInactivityPenalties } from '@/lib/penalties';
+import { toLocalDateString, localDateBoundsUTC, localDateDaysAgo, localDateWeekday } from '@/lib/date';
+import { fetchBatchTarget } from '@/lib/batchTargets';
 
 export async function GET(req: NextRequest) {
   try {
@@ -35,12 +37,7 @@ export async function GET(req: NextRequest) {
     let targetLanguage = 'English';
     if (batchName) {
       try {
-        const { data: batchTargets } = await supabase
-          .from('batch_targets')
-          .select('*')
-          .eq('batch_name', batchName);
-        
-        const activeTarget = batchTargets && batchTargets.length > 0 ? batchTargets[0] : null;
+        const activeTarget = await fetchBatchTarget(batchName);
         if (activeTarget) {
           targetMinutes = activeTarget.daily_target_minutes ?? 5;
           pointsDeduction = activeTarget.points_deduction ?? 10;
@@ -51,10 +48,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── Today's practice time ─────────────────────────────────────────────
-    const todayStr = new Date().toISOString().split('T')[0];
-    const dayStart = `${todayStr}T00:00:00.000Z`;
-    const dayEnd = `${todayStr}T23:59:59.999Z`;
+    // ── Today's practice time (institute-local calendar day) ───────────────
+    const todayStr = toLocalDateString(new Date());
+    const { startUTC: dayStartUTC, endUTC: dayEndUTC } = localDateBoundsUTC(todayStr);
+    const dayStart = dayStartUTC.toISOString();
+    const dayEnd = dayEndUTC.toISOString();
 
     let todaySecondsPracticed = 0;
     try {
@@ -203,28 +201,25 @@ export async function GET(req: NextRequest) {
 
     const dailyPracticeHistory: { dayName: string; minutes: number }[] = [];
     try {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6);
-      sevenDaysAgo.setUTCHours(0, 0, 0, 0);
+      const sevenDaysAgoLocal = localDateDaysAgo(6);
+      const { startUTC: rangeStartUTC } = localDateBoundsUTC(sevenDaysAgoLocal);
 
       const { data: weekRows } = await supabase
         .from('practice_sessions')
         .select('duration, created_at')
         .eq('user_id', user.id)
-        .gte('created_at', sevenDaysAgo.toISOString());
+        .gte('created_at', rangeStartUTC.toISOString());
 
       const secondsByDate = new Map<string, number>();
       for (const r of weekRows || []) {
-        const dateStr = (r.created_at as string).split('T')[0];
+        const dateStr = toLocalDateString(new Date(r.created_at as string));
         secondsByDate.set(dateStr, (secondsByDate.get(dateStr) ?? 0) + (r.duration ?? 0));
       }
 
       for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
+        const dateStr = localDateDaysAgo(i);
         dailyPracticeHistory.push({
-          dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
+          dayName: localDateWeekday(dateStr),
           minutes: Math.round((secondsByDate.get(dateStr) ?? 0) / 60),
         });
       }

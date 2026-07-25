@@ -64,6 +64,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // A negative pointsDeduction would flip apply_penalty_deduction into
+    // awarding points to inactive students instead of penalizing them, and
+    // a target above 1440 (a full day) or a wildly large deduction is
+    // certainly a typo, not an intended value — reject both server-side
+    // rather than trusting the admin UI's own validation.
+    if (dailyTargetMinutes < 1 || dailyTargetMinutes > 1440) {
+      return NextResponse.json(
+        { error: 'dailyTarget/dailyTargetMinutes must be between 1 and 1440' },
+        { status: 400 }
+      );
+    }
+    if (pointsDeduction < 0 || pointsDeduction > 1000) {
+      return NextResponse.json(
+        { error: 'penaltyPoints/pointsDeduction must be between 0 and 1000' },
+        { status: 400 }
+      );
+    }
+
     const trimmedBatch = batchName.trim();
     const formattedType = typingType.trim();
 

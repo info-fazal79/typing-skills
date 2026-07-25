@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { TypingPractice } from '@/components/TypingPractice';
 import { AvatarUpload } from '@/components/AvatarUpload';
+import { localDateDaysAgo, toLocalDateString } from '@/lib/date';
 import {
   Award, BookOpen, Clock, Calendar, CheckCircle2, AlertCircle, Play,
   ArrowLeft, TrendingUp, BarChart3, Zap, Target, Hash,
@@ -613,12 +614,15 @@ export default function DashboardPage() {
                 {(() => {
                   const days = [];
                   for (let i = 29; i >= 0; i--) {
-                    const d = new Date();
-                    d.setDate(d.getDate() - i);
-                    const dateStr = d.toISOString().split('T')[0];
+                    // Same fixed institute-local calendar day the server uses
+                    // to generate inactivityLogs dates — not the browser's own
+                    // timezone, not a raw UTC split — otherwise this grid
+                    // silently mismatches the log entries it's displaying.
+                    const dateStr = localDateDaysAgo(i);
+                    const d = new Date(`${dateStr}T00:00:00.000Z`);
 
                     const log = analytics.inactivityLogs?.find((l: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => l.date === dateStr);
-                    const sessionsOnDay = analytics.recentSessions?.filter((s: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => s.createdAtISO?.split('T')[0] === dateStr) || [];
+                    const sessionsOnDay = analytics.recentSessions?.filter((s: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => s.createdAtISO && toLocalDateString(new Date(s.createdAtISO)) === dateStr) || [];
                     const totalSeconds = sessionsOnDay.reduce((sum: number, s: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => sum + (s.duration || 0), 0);
                     const totalMins = Math.round(totalSeconds / 60);
 
@@ -629,7 +633,7 @@ export default function DashboardPage() {
                       status = totalMins >= targets.targetMinutes ? 'met' : 'none';
                     }
 
-                    days.push({ dateStr, dayLabel: d.getDate(), monthLabel: d.toLocaleDateString(undefined, { month: 'short' }), status, mins: totalMins });
+                    days.push({ dateStr, dayLabel: d.getUTCDate(), monthLabel: d.toLocaleDateString(undefined, { month: 'short', timeZone: 'UTC' }), status, mins: totalMins });
                   }
 
                   return days.map((day, idx) => (

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import { generatePracticeText } from '@/utils/wordLists';
+import { normalizeTypingText } from '@/utils/textNormalize';
 import { RotateCcw, Volume2, VolumeX, Keyboard, Trophy } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -203,7 +204,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   useEffect(() => {
     if (initialText) {
       // eslint-disable-next-line
-      setText(initialText);
+      setText(normalizeTypingText(initialText));
     } else {
       setText(generatePracticeText(language, mode, 80));
     }
@@ -212,9 +213,26 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   const {
     typedText, isStarted, isCompleted,
     timeLeft, wpm, accuracy, timeElapsed,
-    handleInputChange, resetEngine,
+    handleInputChange, resetEngine, setPaused,
     correctChars, incorrectChars
   } = useTypingEngine(text, duration);
+
+  // Pause the countdown (instead of silently burning it down) whenever the
+  // test loses focus — tab switch, alt-tab, or clicking away mid-test.
+  useEffect(() => {
+    setPaused(!isFocused);
+  }, [isFocused, setPaused]);
+
+  // Switching browser tabs doesn't reliably fire a blur event on the hidden
+  // tab's focused element in every browser, so also watch document
+  // visibility directly to catch that case.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) setIsFocused(false);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   // ── Active vs Idle Caret Blinking ──
   const registerKeystrokeForCaret = useCallback(() => {
@@ -624,12 +642,22 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
             </div>
           </div>
 
-          {/* Focus overlay */}
+          {/* Focus overlay — copy differs once a test is already running so a
+              mid-test blur reads as "paused" rather than "not started yet". */}
           {!isFocused && (
             <div className="absolute inset-0 bg-neutral-950/85 rounded-2xl flex flex-col items-center justify-center gap-2 backdrop-blur-sm transition-all animate-pulse">
               <Keyboard size={28} className="text-brand-400" />
-              <p className="text-neutral-300 font-semibold text-sm">Click here to focus &amp; start typing</p>
-              <p className="text-neutral-500 text-xs">The clock starts automatically when you type</p>
+              {isStarted && !isCompleted ? (
+                <>
+                  <p className="text-neutral-300 font-semibold text-sm">Paused — click to resume</p>
+                  <p className="text-neutral-500 text-xs">The timer is frozen until you click back in</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-neutral-300 font-semibold text-sm">Click here to focus &amp; start typing</p>
+                  <p className="text-neutral-500 text-xs">The clock starts automatically when you type</p>
+                </>
+              )}
             </div>
           )}
 
