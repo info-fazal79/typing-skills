@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 
 interface AvatarProps {
   src?: string | null;
@@ -15,7 +15,19 @@ interface AvatarProps {
 export function Avatar({ src, name, size = 40, className = '' }: AvatarProps) {
   const initial = (name || '?').charAt(0).toUpperCase();
 
-  if (src) {
+  // A stored avatarUrl can go stale (storage object deleted/renamed) and
+  // render as a broken image forever otherwise — fall back to the initials
+  // placeholder instead. Reset whenever `src` itself changes (tracked
+  // during render, not an effect) so a new, working URL gets a fresh
+  // chance to load instead of staying stuck on the old failure.
+  const [failed, setFailed] = useState(false);
+  const [trackedSrc, setTrackedSrc] = useState(src);
+  if (src !== trackedSrc) {
+    setTrackedSrc(src);
+    setFailed(false);
+  }
+
+  if (src && !failed) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -23,6 +35,7 @@ export function Avatar({ src, name, size = 40, className = '' }: AvatarProps) {
         alt={name}
         width={size}
         height={size}
+        onError={() => setFailed(true)}
         className={`rounded-full object-cover shrink-0 border border-neutral-800 ${className}`}
         style={{ width: size, height: size }}
       />
