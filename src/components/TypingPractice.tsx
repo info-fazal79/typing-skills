@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import { generatePracticeText } from '@/utils/wordLists';
 import { normalizeTypingText } from '@/utils/textNormalize';
+import { segmentBanglaClusters } from '@/utils/banglaGraphemes';
 import { RotateCcw, Volume2, VolumeX, Keyboard, Trophy } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -91,6 +92,7 @@ interface TypingPracticeProps {
   }) => void;
   initialText?: string;
   isTask?: boolean;
+  language?: string;
 }
 
 interface ChartDataPoint {
@@ -156,8 +158,16 @@ function ResultsTooltip({
   );
 }
 
-export function TypingPractice({ onSessionComplete, initialText, isTask = false }: TypingPracticeProps) {
+export function TypingPractice({ onSessionComplete, initialText, isTask = false, language: taskLanguage }: TypingPracticeProps) {
   const [language, setLanguage] = useState<string>('english');
+
+  // Task-mode practice supplies its own text (activeTask.textContent) and
+  // language (activeTask.language, e.g. "BANGLA") — the `language` state
+  // above is only ever changed by the config-bar buttons, which are hidden
+  // in task mode, so without this a Bangla-assigned task silently rendered
+  // as if it were English (wrong font, no conjunct clustering, no
+  // Bangla-specific normalization further below).
+  const effectiveLanguage = taskLanguage ? taskLanguage.toLowerCase() : language;
   const [mode, setMode] = useState<string>('standard');
   const [duration, setDuration] = useState<number>(30);
   const [text, setText] = useState<string>('');
@@ -401,10 +411,10 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   useEffect(() => {
     if (isCompleted && !completedRef.current) {
       completedRef.current = true;
-      onSessionComplete?.({ wpm, accuracy, duration: timeElapsed, language, mode });
+      onSessionComplete?.({ wpm, accuracy, duration: timeElapsed, language: effectiveLanguage, mode });
     }
     if (!isCompleted) completedRef.current = false;
-  }, [isCompleted, wpm, accuracy, timeElapsed, language, mode, onSessionComplete]);
+  }, [isCompleted, wpm, accuracy, timeElapsed, effectiveLanguage, mode, onSessionComplete]);
 
   // ── Consistency Calculation ──
   const calculateConsistency = () => {
@@ -422,26 +432,45 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
   // Geist Mono has no Bengali glyphs, and Bengali has no reliable monospace
   // web font (conjuncts vary in width), so Bangla mode gets a proper Bengali
   // text font instead of silently falling back to whatever the OS has.
-  const charFontCls = language === 'bangla' ? 'font-bengali' : 'font-mono';
+  const charFontCls = effectiveLanguage === 'bangla' ? 'font-bengali' : 'font-mono';
 
-  const renderCharacters = () =>
-    text.split('').map((char, i) => {
+  // Bangla is grouped into orthographic-syllable clusters (e.g. the whole
+  // hasant-joined "ক্ষ") rather than one span per UTF-16 code unit — wrapping
+  // each code unit of a conjunct in its own span prevents the browser's
+  // complex-script shaping from forming the joint borno ligature at all, so
+  // conjuncts rendered as visibly broken/separate glyphs regardless of
+  // whether the user typed them correctly. English keeps one span per
+  // character since it has no such shaping to preserve.
+  const renderCharacters = () => {
+    const clusters = effectiveLanguage === 'bangla' ? segmentBanglaClusters(text) : text.split('');
+
+    let offset = 0;
+    return clusters.map((cluster, ci) => {
+      const start = offset;
+      offset += cluster.length;
+      const end = offset;
+
       let cls = 'text-neutral-500';
-      if (i < typedText.length) {
-        cls = typedText[i] === char
+      if (start < typedText.length) {
+        const typedSlice = typedText.slice(start, Math.min(end, typedText.length));
+        cls = typedSlice === cluster.slice(0, typedSlice.length)
           ? 'text-neutral-200'
           : 'text-red-400 bg-red-950/40 rounded-sm';
       }
+
       return (
         <span
-          key={i}
-          ref={(el) => { charsRef.current[i] = el; }}
+          key={ci}
+          ref={(el) => {
+            for (let i = start; i < end; i++) charsRef.current[i] = el;
+          }}
           className={`${charFontCls} text-xl sm:text-2xl leading-[2.2rem] ${cls}`}
         >
-          {char}
+          {cluster}
         </span>
       );
     });
+  };
 
   const THREE_LINES = '6.6rem';
   // Based on typedText.length (accepted characters), matching the chart's
@@ -769,7 +798,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false 
               // made "English – Standard" wrap across 3 lines with the dash
               // stranded alone. Sized down here instead of fighting the
               // numeric stats' size classes on the same element.
-              { label: 'Language/Mode', value: `${language} – ${mode}`, cls: 'text-neutral-300 text-lg sm:text-xl font-semibold capitalize leading-tight' },
+              { label: 'Language/Mode', value: `${effectiveLanguage} – ${mode}`, cls: 'text-neutral-300 text-lg sm:text-xl font-semibold capitalize leading-tight' },
             ].map(({ label, value, cls }) => (
               <div key={label} className="bg-neutral-950/40 border border-neutral-800 p-4 rounded-xl flex flex-col justify-center">
                 <span className="text-neutral-500 text-xs font-medium uppercase tracking-wider">{label}</span>

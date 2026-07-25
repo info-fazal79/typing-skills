@@ -149,7 +149,7 @@ export default function DashboardPage() {
                 <span>Target Accuracy: <strong className="text-brand-400 font-mono">{activeTask.targetAccuracy}%</strong></span>
               </div>
             </div>
-            <TypingPractice initialText={activeTask.textContent} isTask={true} onSessionComplete={handleTaskSessionComplete} />
+            <TypingPractice initialText={activeTask.textContent} isTask={true} language={activeTask.language} onSessionComplete={handleTaskSessionComplete} />
             {taskSubmitStatus && (
               <div className="mt-4 p-4 rounded-xl bg-emerald-950/30 border border-emerald-900/50 text-emerald-400 text-sm font-semibold flex items-center gap-2">
                 <CheckCircle2 size={16} /> {taskSubmitStatus}
