@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [courseName, setCourseName] = useState('');
   const [batchName, setBatchName] = useState('');
   const [rollNumber, setRollNumber] = useState('');
@@ -89,9 +90,14 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -258,6 +264,18 @@ export default function RegisterPage() {
               placeholder="Choose a secure password"
             />
             <span className="text-neutral-600 text-[11px]">At least 8 characters</span>
+          </div>
+
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-neutral-400 text-xs font-semibold uppercase tracking-wider">Confirm Password</label>
+            <PasswordInput
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              placeholder="Re-enter your password"
+            />
           </div>
 
           {activeTab === 'STUDENT' && (

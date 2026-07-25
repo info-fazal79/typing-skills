@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
 import { Camera, X } from 'lucide-react';
 import { Avatar } from './Avatar';
@@ -62,6 +62,7 @@ export function AvatarUpload({ currentSrc, name, size = 64, onUploaded }: Avatar
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [uploading, setUploading] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,12 +87,46 @@ export function AvatarUpload({ currentSrc, name, size = 64, onUploaded }: Avatar
     setCroppedAreaPixels(areaPixels);
   }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setImageSrc(null);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setCroppedAreaPixels(null);
-  };
+  }, []);
+
+  // Escape-to-close + a focus trap, matching the pattern used by
+  // ConfirmDialog for other modals in the app — without the trap, Tab could
+  // move focus out to the page behind this dialog while it's open.
+  useEffect(() => {
+    if (!imageSrc) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (!uploading) closeModal();
+        return;
+      }
+      if (e.key !== 'Tab' || !modalRef.current) return;
+
+      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    modalRef.current?.querySelector<HTMLElement>('button, input')?.focus();
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [imageSrc, uploading, closeModal]);
 
   const handleSave = async () => {
     if (!imageSrc || !croppedAreaPixels) return;
@@ -137,11 +172,16 @@ export function AvatarUpload({ currentSrc, name, size = 64, onUploaded }: Avatar
       </div>
 
       {imageSrc && (
-        <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex flex-col gap-4 shadow-2xl">
+        <div
+          className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="avatar-crop-title"
+        >
+          <div ref={modalRef} className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex flex-col gap-4 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-neutral-100">Update profile photo</h3>
-              <button onClick={closeModal} className="text-neutral-500 hover:text-neutral-200 transition-colors">
+              <h3 id="avatar-crop-title" className="text-sm font-bold text-neutral-100">Update profile photo</h3>
+              <button onClick={closeModal} disabled={uploading} className="text-neutral-500 hover:text-neutral-200 disabled:opacity-50 transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -161,8 +201,9 @@ export function AvatarUpload({ currentSrc, name, size = 64, onUploaded }: Avatar
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">Zoom</span>
+              <label htmlFor="avatar-zoom" className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">Zoom</label>
               <input
+                id="avatar-zoom"
                 type="range"
                 min={1}
                 max={3}

@@ -274,7 +274,7 @@ export default function DashboardPage() {
               onClick={() => setDashboardTab('general')}
               className={`pb-3 relative transition-all ${
                 dashboardTab === 'general'
-                  ? 'text-amber-400 font-bold border-b-2 border-amber-500'
+                  ? 'text-brand-400 font-bold border-b-2 border-brand-500'
                   : 'text-neutral-500 hover:text-neutral-300'
               }`}
             >
@@ -284,7 +284,7 @@ export default function DashboardPage() {
               onClick={() => setDashboardTab('report')}
               className={`pb-3 relative transition-all ${
                 dashboardTab === 'report'
-                  ? 'text-amber-400 font-bold border-b-2 border-amber-500'
+                  ? 'text-brand-400 font-bold border-b-2 border-brand-500'
                   : 'text-neutral-500 hover:text-neutral-300'
               }`}
             >
@@ -566,13 +566,13 @@ export default function DashboardPage() {
               </div>
 
               {/* Assignment Summary Card */}
-              <div className="md:col-span-2 bg-[#1d1e22]/20 border border-neutral-800 p-5 rounded-2xl flex flex-col justify-between gap-4">
+              <div className="md:col-span-2 bg-surface/20 border border-neutral-800 p-5 rounded-2xl flex flex-col justify-between gap-4">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Assignment Summary</span>
                     <h3 className="text-lg font-black text-neutral-100 mt-1">Typing Tasks Overview</h3>
                   </div>
-                  <div className="p-2 bg-neutral-950 border border-neutral-800 rounded-xl text-amber-500">
+                  <div className="p-2 bg-neutral-950 border border-neutral-800 rounded-xl text-brand-500">
                     <BookOpen size={20} />
                   </div>
                 </div>
@@ -585,7 +585,7 @@ export default function DashboardPage() {
                     { 
                       label: 'Completion Rate', 
                       value: `${tasks.length ? Math.round((tasks.filter((t: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => t.status === 'COMPLETED').length / tasks.length) * 100) : 0}%`, 
-                      color: 'text-amber-400' 
+                      color: 'text-brand-400' 
                     },
                   ].map((stat, idx) => (
                     <div key={idx} className="bg-neutral-950/40 border border-neutral-800/60 p-3.5 rounded-xl flex flex-col gap-1">
@@ -599,9 +599,9 @@ export default function DashboardPage() {
             </div>
 
             {/* Attendance & Tracker Calendar View */}
-            <div className="bg-[#1d1e22]/20 border border-neutral-800 p-5 rounded-2xl flex flex-col gap-4">
+            <div className="bg-surface/20 border border-neutral-800 p-5 rounded-2xl flex flex-col gap-4">
               <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
-                <Calendar className="text-amber-500" size={18} />
+                <Calendar className="text-brand-500" size={18} />
                 <div className="flex flex-col">
                   <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider">Daily Target Tracker</h3>
                   <span className="text-[10px] text-neutral-500 font-semibold">Attendance log for the last 30 days</span>
@@ -673,9 +673,9 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Progress: Target Speeds */}
-              <div className="bg-[#1d1e22]/20 border border-neutral-800 p-5 rounded-2xl flex flex-col gap-4">
+              <div className="bg-surface/20 border border-neutral-800 p-5 rounded-2xl flex flex-col gap-4">
                 <div className="flex items-center gap-2 border-b border-neutral-800 pb-2">
-                  <TrendingUp className="text-amber-500" size={16} />
+                  <TrendingUp className="text-brand-500" size={16} />
                   <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider">Target Performance Speed</h3>
                 </div>
                 <div className="h-48 flex items-end justify-between gap-2 px-2 pt-4">
@@ -711,9 +711,9 @@ export default function DashboardPage() {
               </div>
 
               {/* Progress: Recent Activity Logs List */}
-              <div className="bg-[#1d1e22]/20 border border-neutral-800 p-5 rounded-2xl flex flex-col gap-4">
+              <div className="bg-surface/20 border border-neutral-800 p-5 rounded-2xl flex flex-col gap-4">
                 <div className="flex items-center gap-2 border-b border-neutral-800 pb-2">
-                  <Clock className="text-amber-500" size={16} />
+                  <Clock className="text-brand-500" size={16} />
                   <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider">Inactivity Log History</h3>
                 </div>
 

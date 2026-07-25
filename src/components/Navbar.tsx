@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Trophy, LayoutDashboard, LogOut, Award, LogIn } from 'lucide-react';
+import { Trophy, LayoutDashboard, LogOut, Award, LogIn, User } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { Logo } from './Logo';
 
@@ -165,6 +165,9 @@ export function Navbar() {
                   </Link>
                   <Link href="/leaderboard" className="p-1.5 rounded-lg text-neutral-400 hover:text-brand-400 hover:bg-neutral-900" title="Leaderboard">
                     <Trophy size={18} />
+                  </Link>
+                  <Link href={`/profile/${user.slug ?? user.id}`} className="p-1.5 rounded-lg text-neutral-400 hover:text-brand-400 hover:bg-neutral-900" title="Profile">
+                    <User size={18} />
                   </Link>
                 </div>
               )}
