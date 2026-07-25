@@ -9,8 +9,9 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const projectRef = 'jkkfmmzibbklcapcjlyc'; // extracted from supabase URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const sql = `ALTER TABLE users ADD COLUMN IF NOT EXISTS slug TEXT;
-CREATE UNIQUE INDEX IF NOT EXISTS users_slug_unique ON users (slug) WHERE slug IS NOT NULL;`;
+const sql = `ALTER TABLE batch_targets ADD COLUMN IF NOT EXISTS typing_type TEXT NOT NULL DEFAULT 'English';
+ALTER TABLE batch_targets DROP CONSTRAINT IF EXISTS batch_targets_pkey;
+ALTER TABLE batch_targets ADD PRIMARY KEY (batch_name, typing_type);`;
 
 const body = JSON.stringify({ query: sql });
 

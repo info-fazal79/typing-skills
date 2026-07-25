@@ -41,15 +41,25 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    // Support both payload variations (batchId/batchName, penaltyPoints/pointsDeduction)
+    // Support all payload variations (batchId/batchName, dailyTarget/dailyTargetMinutes, penaltyPoints/pointsDeduction)
     const batchName = body.batchId || body.batchName;
     const typingType = body.typingType || 'English';
-    const dailyTargetMinutes = body.dailyTargetMinutes;
-    const pointsDeduction = body.penaltyPoints !== undefined ? body.penaltyPoints : body.pointsDeduction;
+    const rawDailyTarget = body.dailyTarget !== undefined ? body.dailyTarget : body.dailyTargetMinutes;
+    const rawPenaltyPoints = body.penaltyPoints !== undefined ? body.penaltyPoints : body.pointsDeduction;
 
-    if (!batchName || typingType === undefined || dailyTargetMinutes === undefined || pointsDeduction === undefined) {
+    if (!batchName || typingType === undefined || rawDailyTarget === undefined || rawPenaltyPoints === undefined) {
       return NextResponse.json(
-        { error: 'Missing batchId/batchName, typingType, dailyTargetMinutes, or penaltyPoints/pointsDeduction' },
+        { error: 'Missing batchId/batchName, typingType, dailyTarget/dailyTargetMinutes, or penaltyPoints/pointsDeduction' },
+        { status: 400 }
+      );
+    }
+
+    const dailyTargetMinutes = parseInt(String(rawDailyTarget), 10);
+    const pointsDeduction = parseInt(String(rawPenaltyPoints), 10);
+
+    if (isNaN(dailyTargetMinutes) || isNaN(pointsDeduction)) {
+      return NextResponse.json(
+        { error: 'dailyTarget/dailyTargetMinutes and penaltyPoints/pointsDeduction must be valid numbers' },
         { status: 400 }
       );
     }
@@ -60,8 +70,8 @@ export async function POST(req: NextRequest) {
     const { error: upsertErr } = await supabase.from('batch_targets').upsert({
       batch_name: trimmedBatch,
       typing_type: formattedType,
-      daily_target_minutes: parseInt(dailyTargetMinutes),
-      points_deduction: parseInt(pointsDeduction),
+      daily_target_minutes: dailyTargetMinutes,
+      points_deduction: pointsDeduction,
     }, { onConflict: 'batch_name,typing_type' });
 
     if (upsertErr) throw upsertErr;
