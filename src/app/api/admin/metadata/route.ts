@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getUserFromRequest } from '@/lib/auth';
 
-// GET: Fetch metadata selectors (Courses, Batches, Roll Numbers)
-export async function GET() {
+// GET: Fetch metadata selectors (Courses, Batches, Roll Numbers). Left
+// unauthenticated on purpose — the public register form needs the course
+// list before a user has any session. But roll_numbers_json is the full
+// roster of every valid roll number for every batch; the register form
+// never actually reads it (its roll dropdown is populated separately by the
+// already-filtered /api/auth/available-rolls), so it's only returned here
+// for the authenticated admin metadata editor, not to anonymous callers.
+export async function GET(req: NextRequest) {
   try {
+    const user = await getUserFromRequest(req);
+    const isAdmin = user?.role === 'ADMIN';
+
     const { data, error } = await supabase
       .from('metadata')
       .select('courses_json, roll_numbers_json')
@@ -17,7 +26,7 @@ export async function GET() {
 
     return NextResponse.json({
       courses: data.courses_json ?? {},
-      rollNumbersByBatch: data.roll_numbers_json ?? {},
+      rollNumbersByBatch: isAdmin ? (data.roll_numbers_json ?? {}) : {},
     });
   } catch (error) {
     console.error('Failed to fetch metadata:', error);

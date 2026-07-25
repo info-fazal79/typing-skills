@@ -11,8 +11,20 @@ interface Bucket {
 const buckets = new Map<string, Bucket>();
 
 function getClientIp(req: NextRequest): string {
+  // Trust the LAST hop in X-Forwarded-For, not the first. The first entry
+  // is whatever the client itself sent — fully spoofable, since a request
+  // can arrive with an attacker-chosen X-Forwarded-For already set, which
+  // the reverse proxy in front of this app appends to rather than replaces.
+  // The last entry is what that proxy actually saw connecting to it, which
+  // a client can't forge. This assumes exactly one trusted reverse proxy
+  // sits directly in front of this Node process (cPanel/Passenger's
+  // standard setup) — if a CDN or extra proxy layer is ever added in front
+  // of that, this needs to skip further from the end accordingly.
   const forwardedFor = req.headers.get('x-forwarded-for');
-  if (forwardedFor) return forwardedFor.split(',')[0].trim();
+  if (forwardedFor) {
+    const hops = forwardedFor.split(',').map((h) => h.trim()).filter(Boolean);
+    if (hops.length > 0) return hops[hops.length - 1];
+  }
 
   const realIp = req.headers.get('x-real-ip');
   if (realIp) return realIp;
