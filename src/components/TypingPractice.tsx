@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import { generatePracticeText } from '@/utils/wordLists';
 import { normalizeTypingText } from '@/utils/textNormalize';
-import { segmentBanglaClusters } from '@/utils/banglaGraphemes';
+import { segmentBanglaClusters, isClusterMatch, compareClusters } from '@/utils/banglaGraphemes';
 import { RotateCcw, Volume2, VolumeX, Keyboard, Trophy } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -294,12 +294,12 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
         const currentTyped = typedTextRef.current;
         const currentTarget = textRef.current;
 
-        // Cumulative correct/incorrect characters at this exact moment
-        let currentCorrect = 0;
-        for (let i = 0; i < currentTyped.length; i++) {
-          if (currentTyped[i] === currentTarget[i]) currentCorrect++;
-        }
-        const currentIncorrect = currentTyped.length - currentCorrect;
+        // Cumulative correct/incorrect characters at this exact moment —
+        // scored per grapheme cluster so this agrees with the final
+        // accuracy/WPM stats and the per-conjunct coloring (see
+        // useTypingEngine and banglaGraphemes.ts).
+        const { correctChars: currentCorrect, incorrectChars: currentIncorrect } =
+          compareClusters(currentTyped, currentTarget);
 
         // Deltas since the last tick, for this second's error count and burst
         const deltaTyped = currentTyped.length - prevTypedLenRef.current;
@@ -453,7 +453,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
       let cls = 'text-neutral-500';
       if (start < typedText.length) {
         const typedSlice = typedText.slice(start, Math.min(end, typedText.length));
-        cls = typedSlice === cluster.slice(0, typedSlice.length)
+        cls = isClusterMatch(typedSlice, cluster)
           ? 'text-neutral-200'
           : 'text-red-400 bg-red-950/40 rounded-sm';
       }

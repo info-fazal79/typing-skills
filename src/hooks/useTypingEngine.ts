@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { normalizeTypingText } from '@/utils/textNormalize';
+import { compareClusters } from '@/utils/banglaGraphemes';
 
 export function useTypingEngine(targetText: string, durationLimitSeconds: number = 30) {
   const [typedText, setTypedText] = useState('');
@@ -122,16 +123,12 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
   }, []);
 
   // ── Compute live stats ─────────────────────────────────────────────────────
-  let correctChars = 0;
-  let incorrectChars = 0;
-
-  for (let i = 0; i < typedText.length; i++) {
-    if (typedText[i] === targetText[i]) {
-      correctChars++;
-    } else {
-      incorrectChars++;
-    }
-  }
+  // Scored per grapheme cluster (a whole Bangla conjunct, or a single code
+  // unit for everything else) so a typo inside a conjunct counts the whole
+  // conjunct wrong instead of just the one code unit that differs — this
+  // keeps accuracy/WPM in agreement with the per-conjunct coloring shown in
+  // the typing UI. No-op for English/Latin text.
+  const { correctChars, incorrectChars } = compareClusters(typedText, targetText);
 
   // eslint-disable-next-line
   const timeElapsed = startTimeRef.current

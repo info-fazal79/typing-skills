@@ -26,6 +26,51 @@ const AKSHARA_RE = new RegExp(
   'gu'
 );
 
+// For non-Bangla text every character falls through to the plain `.`
+// alternative above, producing exactly one cluster per code unit — so this
+// is safe to run on any text (English included), not just Bangla.
 export function segmentBanglaClusters(text: string): string[] {
   return text.match(AKSHARA_RE) ?? [];
+}
+
+// Whether the portion of a cluster typed so far matches — used both to
+// color a cluster's span and to score it, so the two always agree. A typed
+// slice shorter than the cluster (still mid-conjunct) only has to match the
+// cluster's own prefix so far.
+export function isClusterMatch(typedSlice: string, cluster: string): boolean {
+  return typedSlice === cluster.slice(0, typedSlice.length);
+}
+
+export interface ClusterComparison {
+  correctChars: number;
+  incorrectChars: number;
+}
+
+// Scores typed input against target text cluster-by-cluster (one
+// orthographic syllable in Bangla, one code unit for everything else) so a
+// single wrong keystroke inside a conjunct counts the whole conjunct as
+// incorrect instead of only the one code unit that differs — matching how a
+// user perceives "did I type this letter right," and keeping accuracy/WPM
+// numbers consistent with the same red/green coloring shown per conjunct.
+export function compareClusters(typedText: string, targetText: string): ClusterComparison {
+  const clusters = segmentBanglaClusters(targetText);
+  let correctChars = 0;
+  let incorrectChars = 0;
+  let offset = 0;
+
+  for (const cluster of clusters) {
+    const start = offset;
+    const end = offset + cluster.length;
+    offset = end;
+    if (start >= typedText.length) break;
+
+    const typedSlice = typedText.slice(start, Math.min(end, typedText.length));
+    if (isClusterMatch(typedSlice, cluster)) {
+      correctChars += typedSlice.length;
+    } else {
+      incorrectChars += typedSlice.length;
+    }
+  }
+
+  return { correctChars, incorrectChars };
 }
