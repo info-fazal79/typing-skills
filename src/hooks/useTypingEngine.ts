@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { normalizeTypingText } from '@/utils/textNormalize';
 import { compareClusters } from '@/utils/banglaGraphemes';
 
-export function useTypingEngine(targetText: string, durationLimitSeconds: number = 30) {
+export function useTypingEngine(targetText: string, durationLimitSeconds: number = 30, autoStart: boolean = false) {
   const [typedText, setTypedText] = useState('');
   const [isStarted, setIsStarted] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -24,6 +24,21 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
         return prev - 1;
       });
     }, 1000);
+  }, []);
+
+  // Exam mode: the clock is authoritatively started server-side the moment
+  // the exam page first loads (not on the student's first keystroke, unlike
+  // regular practice/tasks) — see src/app/api/exam/[examId]/route.ts. This
+  // starts the same countdown immediately on mount instead of waiting for
+  // input, so the on-screen timer here doesn't drift from the server's.
+  useEffect(() => {
+    if (autoStart && !isStarted && !isCompleted) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsStarted(true);
+      startTimeRef.current = Date.now();
+      startTicking();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reset engine — clears all state and restarts with new duration

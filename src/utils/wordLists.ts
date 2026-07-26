@@ -12,6 +12,25 @@ export const englishWords = [
 
 export const englishPunctuationSymbols = ['.', ',', '?', '!', ';', ':', '-', '"', "'"];
 
+// Single source of truth for the practice categories per language, shared
+// between TypingPractice's config bar, the exam-creation admin form, and
+// server-side exam validation — so a category legal in one place can't
+// silently drift from what generatePracticeText below actually understands.
+export const EXAM_CATEGORIES: Record<'ENGLISH' | 'BANGLA', { id: string; label: string }[]> = {
+  ENGLISH: [
+    { id: 'standard', label: 'Standard' },
+    { id: 'punctuation', label: 'Punctuation' },
+    { id: 'numbers', label: 'Numbers' },
+  ],
+  BANGLA: [
+    { id: 'mixed', label: 'Mixed' },
+    { id: 'vowels', label: 'Vowels (স্বরবর্ণ)' },
+    { id: 'consonants', label: 'Consonants (ব্যঞ্জনবর্ণ)' },
+    { id: 'modifiers', label: 'Modifiers (কার-চিহ্ন)' },
+    { id: 'conjuncts', label: 'Conjuncts (যুক্তবর্ণ)' },
+  ],
+};
+
 // Generates a single alphanumeric token like "b109", "he3a", "D3" — the
 // Numbers category is priced well above Standard specifically because it's
 // meant to mix letters and digits within one token (per the point-system

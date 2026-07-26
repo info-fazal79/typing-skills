@@ -1,16 +1,46 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { TypingPractice } from '@/components/TypingPractice';
 import { AvatarUpload } from '@/components/AvatarUpload';
 import { localDateDaysAgo, toLocalDateString } from '@/lib/date';
 import {
   Award, BookOpen, Clock, Calendar, CheckCircle2, AlertCircle, Play,
   ArrowLeft, TrendingUp, BarChart3, Zap, Target, Hash,
-  TrendingDown, Minus, Star
+  TrendingDown, Minus, Star, FileClock
 } from 'lucide-react';
 
+// Ticks its own countdown to `deadline` once a second — isolated in its own
+// component so the 1s interval only re-renders this small label, not the
+// whole exam card grid.
+function ExamDeadlineCountdown({ deadline }: { deadline: string | Date }) {
+  const [remainingMs, setRemainingMs] = useState(() => new Date(deadline).getTime() - Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setRemainingMs(new Date(deadline).getTime() - Date.now());
+    }, 1000);
+    return () => clearInterval(id);
+  }, [deadline]);
+
+  if (remainingMs <= 0) return <span className="text-red-400">Expired</span>;
+
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return (
+    <span className="font-mono">
+      {days > 0 ? `${days}d ` : ''}{String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+    </span>
+  );
+}
+
 export default function DashboardPage() {
+  const router = useRouter();
   const [data, setData] = useState<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,7 +123,7 @@ export default function DashboardPage() {
     );
   }
 
-  const { user, targets, tasks, analytics } = data;
+  const { user, targets, tasks, exams, analytics } = data;
 
   // ── Pending approval screen ───────────────────────────────────────────────
   if (user?.status === 'PENDING') {
@@ -464,6 +494,75 @@ export default function DashboardPage() {
             </div>
           )}
         </section>
+
+        {/* ── Active Exams (Students only) ── */}
+        {user?.role === 'STUDENT' && exams?.length > 0 && (
+          <section className="p-5 rounded-lg border border-neutral-800 bg-surface/10 flex flex-col gap-4">
+            <div className="flex items-center gap-2 border-b border-neutral-800 pb-3">
+              <FileClock className="text-brand-500" size={18} />
+              <h2 className="text-base font-bold text-neutral-100">Batch Exams</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {exams.map((exam: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => (
+                <div
+                  key={exam.id}
+                  className={`p-4 rounded-xl border flex flex-col justify-between gap-4 transition-colors ${
+                    exam.status === 'COMPLETED'
+                      ? 'border-emerald-800/40 bg-emerald-950/5'
+                      : exam.status === 'EXPIRED'
+                      ? 'border-red-900/40 bg-red-950/5'
+                      : 'border-neutral-800 bg-neutral-950/40 hover:border-neutral-700'
+                  }`}
+                >
+                  <div className="flex justify-between items-start gap-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-neutral-200">{exam.title}</h4>
+                      <p className="text-[11px] text-neutral-500 mt-0.5 capitalize">{exam.language?.toLowerCase()} &middot; {exam.category}</p>
+                    </div>
+                    <span className={`text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 ${
+                      exam.status === 'COMPLETED'
+                        ? 'bg-emerald-500/10 text-emerald-400'
+                        : exam.status === 'EXPIRED'
+                        ? 'bg-red-500/10 text-red-400'
+                        : exam.status === 'IN_PROGRESS'
+                        ? 'bg-brand-500/10 text-brand-400'
+                        : 'bg-brand-500/10 text-brand-400'
+                    }`}>
+                      {exam.status === 'IN_PROGRESS' ? 'IN PROGRESS' : exam.status}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs border-t border-neutral-800/50 pt-3">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-neutral-500">
+                      <span>Pts: <strong className="text-neutral-300 font-mono">+{exam.points}</strong></span>
+                      <span>Duration: <strong className="text-neutral-300 font-mono">{Math.round(exam.durationSeconds / 60)}m</strong></span>
+                      {(exam.status === 'ACTIVE' || exam.status === 'IN_PROGRESS') && (
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} />
+                          <ExamDeadlineCountdown deadline={exam.deadline} />
+                        </span>
+                      )}
+                    </div>
+                    {exam.status === 'COMPLETED' ? (
+                      <div className="text-[11px] text-emerald-400 font-medium">
+                        {Math.round(exam.result?.wpm ?? 0)} WPM / {Math.round(exam.result?.accuracy ?? 0)}%
+                      </div>
+                    ) : exam.status === 'EXPIRED' ? (
+                      <div className="text-[11px] text-red-400 font-medium">Deadline passed</div>
+                    ) : (
+                      <button
+                        onClick={() => router.push(`/exam/${exam.id}`)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 bg-brand-500 text-neutral-950 hover:bg-brand-400"
+                      >
+                        <Play size={12} />
+                        {exam.status === 'IN_PROGRESS' ? 'Resume Exam' : 'Start Exam'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Task Assignments (Students only) ── */}
         {user?.role === 'STUDENT' && (
