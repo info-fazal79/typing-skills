@@ -60,11 +60,10 @@ export function Navbar() {
   // Now rendered once in the root layout (see layout.tsx) instead of once
   // per page, so it has to opt itself out on the standalone, distraction-free
   // auth screens that were never designed to sit under a top nav. The exam
-  // workspace (/exam/[examId]) is the same story — a locked-down, single-shot
-  // timed test has no business showing nav links away from it.
+  // workspace (/exam/[examId]) keeps the navbar — restored after an earlier
+  // iteration hid it, since the site's header should stay visible everywhere.
   const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
-  const isExamPage = pathname.startsWith('/exam/');
-  if (isAuthPage || isExamPage) return null;
+  if (isAuthPage) return null;
 
   if (loading) {
     return (

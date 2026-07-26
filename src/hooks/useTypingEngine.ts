@@ -12,19 +12,32 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const pauseStartRef = useRef<number | null>(null);
+  // Absolute wall-clock deadline, not a tick counter — a plain setInterval
+  // that decrements by 1 each fire drifts (or outright stalls) the moment a
+  // browser throttles background-tab timers, which is exactly the loophole
+  // a timed exam can't tolerate. Anchoring to a fixed end timestamp and
+  // recomputing "how much real time is left" on every tick means a missed
+  // or delayed tick still reports the correct remaining time the instant it
+  // does fire, instead of silently running slow.
+  const endTimeRef = useRef<number | null>(null);
+
+  const tick = useCallback(() => {
+    if (endTimeRef.current === null) return;
+    const remaining = Math.max(0, Math.ceil((endTimeRef.current - Date.now()) / 1000));
+    setTimeLeft(remaining);
+    if (remaining <= 0) {
+      setIsCompleted(true);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  }, []);
 
   const startTicking = useCallback(() => {
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          setIsCompleted(true);
-          if (timerRef.current) clearInterval(timerRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, []);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(tick, 1000);
+  }, [tick]);
 
   // Exam mode: the clock is authoritatively started server-side the moment
   // the exam page first loads (not on the student's first keystroke, unlike
@@ -36,10 +49,30 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsStarted(true);
       startTimeRef.current = Date.now();
+      endTimeRef.current = Date.now() + durationLimitSeconds * 1000;
       startTicking();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Exam mode only: force an immediate recompute the instant the tab
+  // becomes visible/focused again, instead of waiting for the next
+  // (possibly throttled) interval tick. This is what makes an exam
+  // auto-submit right away if the student comes back after time's already
+  // up, rather than however long the browser feels like waiting to fire a
+  // background timer. Scoped to autoStart so regular practice/tasks keep
+  // their existing (deliberately different) pause-on-blur behavior via
+  // setPaused below, unaffected.
+  useEffect(() => {
+    if (!autoStart) return;
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', tick);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', tick);
+    };
+  }, [autoStart, tick]);
 
   // Reset engine — clears all state and restarts with new duration
   const resetEngine = useCallback((newDuration?: number) => {
@@ -51,16 +84,20 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
     setTotalAttempts(0);
     startTimeRef.current = null;
     pauseStartRef.current = null;
+    endTimeRef.current = null;
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
   }, [durationLimitSeconds]);
 
-  // Pause/resume the countdown (and shift the elapsed-time baseline on
-  // resume) so switching tabs or losing focus mid-test doesn't burn down
-  // the timer or count against WPM/accuracy — previously the interval kept
-  // ticking and elapsed time kept accruing regardless of focus.
+  // Pause/resume the countdown (and shift both the elapsed-time baseline
+  // and the end-time deadline on resume) so switching tabs or losing focus
+  // mid-test doesn't burn down the timer or count against WPM/accuracy —
+  // previously the interval kept ticking and elapsed time kept accruing
+  // regardless of focus. Exam mode (autoStart) never calls this at all (see
+  // TypingPractice.tsx) — an exam's timer must keep running in the
+  // background precisely so it can't be paused by tabbing away.
   const setPaused = useCallback((paused: boolean) => {
     if (!isStarted || isCompleted) return;
 
@@ -77,6 +114,9 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
         const pausedMs = Date.now() - pauseStartRef.current;
         if (startTimeRef.current !== null) {
           startTimeRef.current += pausedMs;
+        }
+        if (endTimeRef.current !== null) {
+          endTimeRef.current += pausedMs;
         }
         pauseStartRef.current = null;
       }
@@ -101,6 +141,7 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
     if (!isStarted && value.length > 0) {
       setIsStarted(true);
       startTimeRef.current = Date.now();
+      endTimeRef.current = Date.now() + durationLimitSeconds * 1000;
       startTicking();
     }
 
@@ -139,7 +180,7 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
 
     // Clamp to target length — do NOT auto-complete; rely on timer
     setTypedText(value.length > targetText.length ? value.substring(0, targetText.length) : value);
-  }, [isStarted, isCompleted, typedText, targetText, startTicking]);
+  }, [isStarted, isCompleted, typedText, targetText, startTicking, durationLimitSeconds]);
 
   // Sync timeLeft when durationLimitSeconds changes before test starts
   useEffect(() => {
