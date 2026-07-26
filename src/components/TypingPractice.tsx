@@ -198,6 +198,12 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
   // Bangla conjunct the caret actually is, instead of only knowing which
   // (possibly multi-code-unit) span it's in.
   const clusterStartRef = useRef<number[]>([]);
+  // Exam mode's fixed publish-time text, captured once so the "infinite
+  // word appending" effect below can recycle the *same* text (repeat it)
+  // for a long-duration exam instead of running out mid-test — regenerating
+  // fresh random text there would defeat the point of every student in the
+  // batch seeing identical content.
+  const examBaseTextRef = useRef('');
   const soundRef = useRef(soundEnabled);
   useEffect(() => { soundRef.current = soundEnabled; }, [soundEnabled]);
 
@@ -234,12 +240,14 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
   // happens to be encoded.
   useEffect(() => {
     if (initialText) {
+      const normalized = normalizeTypingText(initialText);
       // eslint-disable-next-line
-      setText(normalizeTypingText(initialText));
+      setText(normalized);
+      if (examMode) examBaseTextRef.current = normalized;
     } else {
       setText(normalizeTypingText(generatePracticeText(language, mode, 80)));
     }
-  }, [language, mode, initialText]);
+  }, [language, mode, initialText, examMode]);
 
   const {
     typedText, isStarted, isCompleted,
@@ -250,9 +258,14 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
 
   // Pause the countdown (instead of silently burning it down) whenever the
   // test loses focus — tab switch, alt-tab, or clicking away mid-test.
+  // Exam mode is deliberately excluded: an exam's timer must keep running
+  // in the background specifically so tabbing away can't be used to freeze
+  // the clock and bypass the time limit (useTypingEngine's timestamp-based
+  // countdown handles staying accurate through backgrounding on its own).
   useEffect(() => {
+    if (examMode) return;
     setPaused(!isFocused);
-  }, [isFocused, setPaused]);
+  }, [isFocused, setPaused, examMode]);
 
   // Switching browser tabs doesn't reliably fire a blur event on the hidden
   // tab's focused element in every browser, so also watch document
@@ -282,15 +295,24 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
   }, []);
 
   // ── Infinite word appending ──
+  // Exam mode recycles the exam's own fixed text (never generates new
+  // random text — every student in the batch has to see identical content)
+  // so a long-duration exam never runs out of target text for a fast typist
+  // to catch up to, regardless of the original text's length.
   useEffect(() => {
-    if (!initialText && isStarted && !isCompleted) {
+    if (!isStarted || isCompleted) return;
+
+    if (examMode) {
+      if (examBaseTextRef.current && text.length - typedText.length < 50) {
+        setText((prev) => prev + ' ' + examBaseTextRef.current);
+      }
+    } else if (!initialText) {
       if (text.length - typedText.length < 100) {
         const extra = normalizeTypingText(generatePracticeText(language, mode, 50));
-        // eslint-disable-next-line
         setText((prev) => prev + ' ' + extra);
       }
     }
-  }, [typedText, text, isStarted, isCompleted, language, mode, initialText]);
+  }, [typedText, text, isStarted, isCompleted, language, mode, initialText, examMode]);
 
   // Keep refs current every render so the interval below always reads the
   // latest values without needing to restart on every keystroke.
