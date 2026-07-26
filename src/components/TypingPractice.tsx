@@ -215,13 +215,17 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
   const prevIncorrectRef = useRef(0);
   const prevTypedLenRef = useRef(0);
 
-  // Generate initial text
+  // Generate initial text. Always run through normalizeTypingText — not
+  // just for initialText — so the target is guaranteed to be in the same
+  // NFC form the typed input is compared against (handleInputChange
+  // normalizes every keystroke), regardless of how the source string itself
+  // happens to be encoded.
   useEffect(() => {
     if (initialText) {
       // eslint-disable-next-line
       setText(normalizeTypingText(initialText));
     } else {
-      setText(generatePracticeText(language, mode, 80));
+      setText(normalizeTypingText(generatePracticeText(language, mode, 80)));
     }
   }, [language, mode, initialText]);
 
@@ -269,7 +273,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
   useEffect(() => {
     if (!initialText && isStarted && !isCompleted) {
       if (text.length - typedText.length < 100) {
-        const extra = generatePracticeText(language, mode, 50);
+        const extra = normalizeTypingText(generatePracticeText(language, mode, 50));
         // eslint-disable-next-line
         setText((prev) => prev + ' ' + extra);
       }
@@ -399,7 +403,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
 
     resetEngine(duration);
     if (!initialText) {
-      setText(generatePracticeText(language, mode, 80));
+      setText(normalizeTypingText(generatePracticeText(language, mode, 80)));
     }
     setSaveStatus('');
 
@@ -484,7 +488,16 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
       let cls = 'text-neutral-500';
       if (start < typedText.length) {
         const typedSlice = typedText.slice(start, Math.min(end, typedText.length));
-        cls = isClusterMatch(typedSlice, cluster)
+        // A conjunct (e.g. "ক্ষ" = ক + hasant + ষ) is one structural unit —
+        // matching only the first code unit of a multi-code-unit cluster
+        // isn't "correct" yet, just not-wrong-so-far. Coloring it white the
+        // instant the prefix matches made every conjunct flash correct after
+        // its first keystroke, then jump to full color once the rest landed,
+        // which read as broken/inconsistent feedback. Only a fully-typed,
+        // fully-matching cluster counts as correct (white); anything
+        // mismatched OR still incomplete stays red.
+        const isComplete = typedSlice.length >= cluster.length;
+        cls = isClusterMatch(typedSlice, cluster) && isComplete
           ? 'text-neutral-200'
           : 'text-red-400 bg-red-950/40 rounded-sm';
       }
@@ -634,7 +647,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
       {!isCompleted ? (
         <div
           onClick={() => inputRef.current?.focus()}
-          className={`relative px-8 pt-14 pb-6 rounded-2xl border transition-all duration-300 bg-neutral-900/40 cursor-text ${
+          className={`relative px-[25px] pt-14 pb-6 rounded-2xl border transition-all duration-300 bg-neutral-900/40 cursor-text ${
             isFocused
               ? 'border-neutral-800 ring-1 ring-brand-500/20'
               : 'border-neutral-800 hover:border-neutral-700 opacity-60'
@@ -750,7 +763,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
         </div>
       ) : (
         /* Results View */
-        <div className="p-8 rounded-2xl border border-neutral-800 bg-neutral-900/60 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="px-[25px] py-8 rounded-2xl border border-neutral-800 bg-neutral-900/60 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center gap-3 border-b border-neutral-800 pb-4">
             <Trophy className="text-brand-400" size={28} />
             <h2 className="text-xl font-bold text-neutral-100">Practice Completed!</h2>

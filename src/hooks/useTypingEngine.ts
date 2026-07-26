@@ -89,23 +89,31 @@ export function useTypingEngine(targetText: string, durationLimitSeconds: number
       startTicking();
     }
 
-    // Track total keystrokes (forward only, not backspace). Counted in code
-    // units added (not a flat +1 per input event) because NFC normalization
-    // can expand a single keystroke into two code units — Bengali RRA/RHA/YYA
-    // (ড়/ঢ়/য়) are Unicode "composition exclusions", so a Bijoy Unicode
-    // layout emitting one as a single precomposed codepoint still normalizes
-    // to a 2-code-unit base-consonant+nukta sequence here. A flat +1 would
-    // undercount attempts relative to correctChars/incorrectChars (which are
-    // also code-unit-scored, see compareClusters), inflating accuracy% for
-    // any Bangla text containing those letters. Checking targetChar against
-    // the FIRST new position (not the last) keeps the strict-space check
-    // correct regardless of how many code units this event actually added.
-    const delta = value.length - typedText.length;
-    if (delta > 0) {
+    // Track total keystrokes (forward only, not backspace). Gated on the RAW
+    // (pre-normalization) length growing — that's the actual signal that the
+    // user pressed a forward key — rather than the normalized delta, because
+    // NFC normalization doesn't only expand code units (RRA/RHA/YYA, see
+    // below), it also COLLAPSES them: Bangla o-kar/ou-kar are commonly typed
+    // as two separate keystrokes (e-kar, then aa-kar / the AU length mark),
+    // which NFC recomposes into one precomposed code unit. That second
+    // keystroke leaves the normalized length unchanged (rawDelta=1,
+    // normalizedDelta=0), so gating on normalizedDelta silently dropped it
+    // from totalAttempts — an uncounted keystroke that inflates accuracy%
+    // for any Bangla text using okar/oukar, some of the most common vowel
+    // signs. Math.max(1, ...) keeps the increment amount matched to
+    // correctChars/incorrectChars' code-unit scale for the expansion case
+    // (RRA/RHA/YYA, where normalizedDelta=2) while guaranteeing every real
+    // keystroke counts for at least 1 in the composition-collapse case.
+    // Checking targetChar against the FIRST new position (not the last)
+    // keeps the strict-space check correct regardless of how many code
+    // units this event actually added.
+    const rawDelta = rawValue.length - typedText.length;
+    const normalizedDelta = value.length - typedText.length;
+    if (rawDelta > 0) {
       const firstNewChar = value[typedText.length];
       const targetChar = targetText[typedText.length];
 
-      setTotalAttempts((prev) => prev + delta);
+      setTotalAttempts((prev) => prev + Math.max(1, normalizedDelta));
 
       // STRICT SPACE RULE: If the target character is a space,
       // and the typed character is NOT a space, do not advance the input.
