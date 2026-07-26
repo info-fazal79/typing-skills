@@ -128,6 +128,64 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // ── Batch exam assignments (STUDENT only) ─────────────────────────────
+    let formattedExams: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[] = [];
+    if (batchName) {
+      try {
+        const { data: examsSnap } = await supabase
+          .from('exams')
+          .select('*')
+          .eq('batch_name', batchName);
+
+        const { data: examAttemptsSnap } = await supabase
+          .from('exam_attempts')
+          .select('*')
+          .eq('student_id', user.id);
+
+        const attemptByExam = new Map<string, any /* eslint-disable-line @typescript-eslint/no-explicit-any */>();
+        (examAttemptsSnap || []).forEach((a) => attemptByExam.set(a.exam_id, a));
+
+        formattedExams = (examsSnap || [])
+          .map((exam) => {
+            const attempt = attemptByExam.get(exam.id);
+            const now = Date.now();
+
+            let status: 'ACTIVE' | 'IN_PROGRESS' | 'COMPLETED' | 'EXPIRED';
+            let result: { wpm: number; rawWpm: number; accuracy: number } | null = null;
+
+            if (attempt?.completed_at) {
+              status = 'COMPLETED';
+              result = { wpm: attempt.wpm ?? 0, rawWpm: attempt.raw_wpm ?? 0, accuracy: attempt.accuracy ?? 0 };
+            } else if (attempt) {
+              // Started but not finalized — the exam page/API lazily
+              // finalizes an expired-but-unfinished attempt when next
+              // visited, so a stale in-progress row past its duration is
+              // shown here as already-forfeited rather than "in progress".
+              const elapsedSeconds = (now - new Date(attempt.started_at).getTime()) / 1000;
+              status = elapsedSeconds >= exam.duration_seconds ? 'COMPLETED' : 'IN_PROGRESS';
+              if (status === 'COMPLETED') result = { wpm: 0, rawWpm: 0, accuracy: 0 };
+            } else {
+              status = now > new Date(exam.deadline).getTime() ? 'EXPIRED' : 'ACTIVE';
+            }
+
+            return {
+              id: exam.id,
+              title: exam.title,
+              language: exam.language,
+              category: exam.category,
+              durationSeconds: exam.duration_seconds,
+              points: exam.points,
+              deadline: new Date(exam.deadline),
+              status,
+              result,
+            };
+          })
+          .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+      } catch (e) {
+        console.warn('Exams fetch failed (non-fatal):', e);
+      }
+    }
+
     // ── Practice session analytics ────────────────────────────────────────
     // Previously this fetched the user's ENTIRE session history with
     // select('*') just to derive a handful of numbers and the last 15 rows —
@@ -277,6 +335,7 @@ export async function GET(req: NextRequest) {
         percentComplete: Math.min(100, Math.round((todaySecondsPracticed / (targetMinutes * 60)) * 100)),
       },
       tasks: formattedTasks,
+      exams: formattedExams,
       analytics: {
         totalTests,
         bestWpm,
@@ -297,6 +356,7 @@ export async function GET(req: NextRequest) {
       user: null,
       targets: { targetMinutes: 5, pointsDeduction: 10, targetLanguage: 'English', todayMinutesPracticed: 0, todaySecondsPracticed: 0, percentComplete: 0 },
       tasks: [],
+      exams: [],
       analytics: { totalTests: 0, bestWpm: 0, avgWpm: 0, avgAccuracy: 0, sessions: [], dailyPractice: [], recentSessions: [], performanceTrend: 'new' },
       _error: (error instanceof Error ? error.message : 'Unknown error'),
     });

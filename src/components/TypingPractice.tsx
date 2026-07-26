@@ -85,6 +85,7 @@ function playClick(isCorrect: boolean) {
 interface TypingPracticeProps {
   onSessionComplete?: (data: {
     wpm: number;
+    rawWpm: number;
     accuracy: number;
     duration: number;
     language: string;
@@ -93,6 +94,17 @@ interface TypingPracticeProps {
   initialText?: string;
   isTask?: boolean;
   language?: string;
+  // Exam mode: starts the countdown immediately on mount (see
+  // useTypingEngine's autoStart) instead of on first keystroke, and removes
+  // every way to restart the test (reset icon, Escape) — an exam attempt is
+  // single-shot by design, enforced server-side regardless, but the UI
+  // shouldn't offer a "do-over" affordance that only confuses the student.
+  examMode?: boolean;
+  // Seeds the test duration from the caller instead of the 30s default —
+  // exams have a per-exam configured duration, and a resumed (refreshed)
+  // exam needs to seed the server's already-elapsed-aware remaining time
+  // rather than a fresh full duration.
+  initialDuration?: number;
 }
 
 interface ChartDataPoint {
@@ -158,7 +170,7 @@ function ResultsTooltip({
   );
 }
 
-export function TypingPractice({ onSessionComplete, initialText, isTask = false, language: taskLanguage }: TypingPracticeProps) {
+export function TypingPractice({ onSessionComplete, initialText, isTask = false, language: taskLanguage, examMode = false, initialDuration }: TypingPracticeProps) {
   const [language, setLanguage] = useState<string>('english');
 
   // Task-mode practice supplies its own text (activeTask.textContent) and
@@ -169,7 +181,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
   // Bangla-specific normalization further below).
   const effectiveLanguage = taskLanguage ? taskLanguage.toLowerCase() : language;
   const [mode, setMode] = useState<string>('standard');
-  const [duration, setDuration] = useState<number>(30);
+  const [duration, setDuration] = useState<number>(initialDuration ?? 30);
   const [text, setText] = useState<string>('');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const [isFocused, setIsFocused] = useState<boolean>(true);
@@ -234,7 +246,7 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
     timeLeft, wpm, accuracy, timeElapsed,
     handleInputChange, resetEngine, setPaused,
     correctChars, incorrectChars
-  } = useTypingEngine(text, duration);
+  } = useTypingEngine(text, duration, examMode);
 
   // Pause the countdown (instead of silently burning it down) whenever the
   // test loses focus — tab switch, alt-tab, or clicking away mid-test.
@@ -419,14 +431,15 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
     }, 30);
   }, [duration, language, mode, initialText, resetEngine]);
 
-  // ── Esc ──
+  // ── Esc ── (disabled in exam mode — no restarting a single-shot attempt)
   useEffect(() => {
+    if (examMode) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); handleReset(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [handleReset]);
+  }, [handleReset, examMode]);
 
   // ── Sound + Caret Activity ──
   const lastLenRef = useRef(0);
@@ -441,15 +454,23 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
     lastLenRef.current = typedText.length;
   }, [typedText, text, registerKeystrokeForCaret]);
 
+  // Based on typedText.length (accepted characters), matching the chart's
+  // per-second rawWpm calculation — totalAttempts also counts keystrokes
+  // rejected by the strict-space rule, which previously made this stat card
+  // disagree with the chart's final point for the same session. Computed
+  // here (not just at render time below) so it's available to the
+  // session-complete payload too.
+  const rawWpmVal = timeElapsed > 0 ? Math.round((typedText.length / 5) / (timeElapsed / 60)) : 0;
+
   // ── Session complete ──
   const completedRef = useRef(false);
   useEffect(() => {
     if (isCompleted && !completedRef.current) {
       completedRef.current = true;
-      onSessionComplete?.({ wpm, accuracy, duration: timeElapsed, language: effectiveLanguage, mode });
+      onSessionComplete?.({ wpm, rawWpm: rawWpmVal, accuracy, duration: timeElapsed, language: effectiveLanguage, mode });
     }
     if (!isCompleted) completedRef.current = false;
-  }, [isCompleted, wpm, accuracy, timeElapsed, effectiveLanguage, mode, onSessionComplete]);
+  }, [isCompleted, wpm, rawWpmVal, accuracy, timeElapsed, effectiveLanguage, mode, onSessionComplete]);
 
   // ── Consistency Calculation ──
   const calculateConsistency = () => {
@@ -520,11 +541,6 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
   };
 
   const THREE_LINES = '6.6rem';
-  // Based on typedText.length (accepted characters), matching the chart's
-  // per-second rawWpm calculation below — totalAttempts also counts
-  // keystrokes rejected by the strict-space rule, which previously made this
-  // stat card disagree with the chart's final point for the same session.
-  const rawWpmVal = timeElapsed > 0 ? Math.round((typedText.length / 5) / (timeElapsed / 60)) : 0;
 
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col gap-6 select-none">
@@ -674,13 +690,15 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
               >
                 {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleReset(); }}
-                className="hover:text-brand-400 p-2.5 rounded-lg transition-colors"
-                title="Restart (Esc)"
-              >
-                <RotateCcw size={16} />
-              </button>
+              {!examMode && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleReset(); }}
+                  className="hover:text-brand-400 p-2.5 rounded-lg transition-colors"
+                  title="Restart (Esc)"
+                >
+                  <RotateCcw size={16} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -884,13 +902,15 @@ export function TypingPractice({ onSessionComplete, initialText, isTask = false,
             </div>
           )}
 
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-2 w-max bg-brand-500 text-neutral-950 hover:bg-brand-400 px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-brand-500/20 active:scale-95"
-          >
-            <RotateCcw size={18} />
-            Try Again
-          </button>
+          {!examMode && (
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-2 w-max bg-brand-500 text-neutral-950 hover:bg-brand-400 px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-brand-500/20 active:scale-95"
+            >
+              <RotateCcw size={18} />
+              Try Again
+            </button>
+          )}
         </div>
       )}
 

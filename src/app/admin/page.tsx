@@ -4,22 +4,30 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Avatar } from '@/components/Avatar';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useToast } from '@/components/ToastProvider';
+import { EXAM_CATEGORIES } from '@/utils/wordLists';
 import {
   Users, CheckCircle2, XCircle, BookOpen, Plus,
-  Trash2, ShieldAlert, Download, Sliders
+  Trash2, ShieldAlert, Download, Sliders, FileClock
 } from 'lucide-react';
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'approvals' | 'directory' | 'tasks' | 'targets' | 'metadata' | 'report'>('approvals');
-  
+  const [activeTab, setActiveTab] = useState<'approvals' | 'directory' | 'tasks' | 'exams' | 'targets' | 'metadata' | 'report'>('approvals');
+
   // Student Report Tab States
   const [reportFilterBatch, setReportFilterBatch] = useState('');
   const [reportList, setReportList] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
   const [reportLoading, setReportLoading] = useState(false);
-  
+
+  // Exam Report sub-section states
+  const [reportExamId, setReportExamId] = useState('');
+  const [examReport, setExamReport] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
+  const [examReportMeta, setExamReportMeta] = useState<any /* eslint-disable-line @typescript-eslint/no-explicit-any */>(null);
+  const [examReportLoading, setExamReportLoading] = useState(false);
+
   // Data States
   const [students, setStudents] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
   const [tasks, setTasks] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
+  const [exams, setExams] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
   const [targets, setTargets] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
   const [loading, setLoading] = useState(true);
   const { showSuccess, showError } = useToast();
@@ -52,6 +60,16 @@ export default function AdminPage() {
   const [taskPoints, setTaskPoints] = useState('100');
   const [taskBatches, setTaskBatches] = useState(''); // comma separated
 
+  // Form States - Exam Creation
+  const [examTitle, setExamTitle] = useState('');
+  const [examBatchName, setExamBatchName] = useState('');
+  const [examLanguage, setExamLanguage] = useState('ENGLISH');
+  const [examCategory, setExamCategory] = useState(EXAM_CATEGORIES.ENGLISH[0].id);
+  const [examDurationSeconds, setExamDurationSeconds] = useState('300');
+  const [examPoints, setExamPoints] = useState('100');
+  const [examDeadline, setExamDeadline] = useState('');
+  const [examContent, setExamContent] = useState('');
+
   // Form States - Target Setting
   const [targetBatchName, setTargetBatchName] = useState('');
   const [targetMins, setTargetMins] = useState('5');
@@ -83,6 +101,11 @@ export default function AdminPage() {
       const tasksRes = await fetch('/api/admin/tasks');
       const tasksData = await tasksRes.json();
       setTasks(tasksData.tasks || []);
+
+      // 2b. Fetch Exams
+      const examsRes = await fetch('/api/admin/exams');
+      const examsData = await examsRes.json();
+      setExams(examsData.exams || []);
 
       // 3. Fetch Targets
       const targetsRes = await fetch('/api/admin/targets');
@@ -172,6 +195,64 @@ export default function AdminPage() {
       fetchReportData();
     }
   }, [activeTab, fetchReportData]);
+
+  const fetchExamReportData = useCallback(async (examId: string) => {
+    if (!examId) {
+      setExamReport([]);
+      setExamReportMeta(null);
+      return;
+    }
+    setExamReportLoading(true);
+    try {
+      const res = await fetch(`/api/admin/exams/report?examId=${encodeURIComponent(examId)}`);
+      const json = await res.json();
+      if (res.ok) {
+        setExamReport(json.report || []);
+        setExamReportMeta(json.exam || null);
+      } else {
+        showError(json.error || 'Failed to fetch exam report');
+      }
+    } catch (e) {
+      console.error(e);
+      showError('Failed to fetch exam report');
+    } finally {
+      setExamReportLoading(false);
+    }
+  }, [showError]);
+
+  useEffect(() => {
+    if (activeTab === 'report' && reportExamId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchExamReportData(reportExamId);
+    }
+  }, [activeTab, reportExamId, fetchExamReportData]);
+
+  const handleExportExamReportCSV = () => {
+    if (!reportExamId || examReport.length === 0) {
+      showError('Select an exam with recorded students to export.');
+      return;
+    }
+
+    const headers = ['Student Name', 'Roll Number', 'Status', 'WPM', 'Accuracy', 'Points Earned'];
+    const rows = examReport.map((r) => [
+      `"${r.name}"`,
+      `"${r.rollNumber}"`,
+      r.status,
+      r.wpm ?? '',
+      r.accuracy ?? '',
+      r.pointsEarned,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Exam_Report_${examReportMeta?.title || reportExamId}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Update Student Status (Approve/Reject/Suspend)
   const handleUpdateStatus = async (studentId: string, status: string) => {
@@ -300,6 +381,46 @@ export default function AdminPage() {
       }
     } catch {
       showError('Failed to deploy task.');
+    }
+  };
+
+  const handleCreateExam = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!examTitle || !examBatchName || !examDeadline) {
+      showError('Title, batch, and deadline are required.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/exams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: examTitle,
+          batchName: examBatchName,
+          language: examLanguage,
+          category: examCategory,
+          durationSeconds: examDurationSeconds,
+          points: examPoints,
+          deadline: examDeadline,
+          textContent: examContent,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        showSuccess('Exam published successfully.');
+        setExamTitle('');
+        setExamBatchName('');
+        setExamDeadline('');
+        setExamContent('');
+        loadAdminData();
+      } else {
+        showError(data.error);
+      }
+    } catch {
+      showError('Failed to publish exam.');
     }
   };
 
@@ -466,6 +587,7 @@ export default function AdminPage() {
             { id: 'approvals', label: 'Pending Approvals', count: students.filter(s => s.status === 'PENDING').length },
             { id: 'directory', label: 'User Directory', count: students.length },
             { id: 'tasks', label: 'Task Assignments', count: tasks.length },
+            { id: 'exams', label: 'Exam', count: exams.length },
             { id: 'targets', label: 'Inactivity targets', count: targets.length },
             { id: 'metadata', label: 'Registration Options', count: 0 },
             { id: 'report', label: 'Student Report', count: 0 },
@@ -931,6 +1053,176 @@ export default function AdminPage() {
                             </div>
                             <div className="text-[11px] text-neutral-400 font-medium">
                               Deadline: {new Date(task.deadline).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Exam Management View */}
+            {activeTab === 'exams' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Creation Form */}
+                <div className="md:col-span-1 bg-neutral-900/40 p-6 rounded-2xl border border-neutral-800/80 h-max flex flex-col gap-4">
+                  <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
+                    <Plus size={16} className="text-brand-500" />
+                    Publish New Exam
+                  </h3>
+
+                  <form onSubmit={handleCreateExam} className="flex flex-col gap-4 text-xs">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Exam Title</label>
+                      <input
+                        type="text"
+                        required
+                        value={examTitle}
+                        onChange={(e) => setExamTitle(e.target.value)}
+                        placeholder="e.g. Mid-term typing exam"
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Select Batch</label>
+                      <select
+                        required
+                        value={examBatchName}
+                        onChange={(e) => setExamBatchName(e.target.value)}
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-bold"
+                      >
+                        <option value="">— Select Batch —</option>
+                        {Array.from(new Set(Object.values(metadata.courses).flat())).sort().map((batchName) => (
+                          <option key={batchName} value={batchName}>{batchName}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Language</label>
+                        <select
+                          value={examLanguage}
+                          onChange={(e) => {
+                            const lang = e.target.value as 'ENGLISH' | 'BANGLA';
+                            setExamLanguage(lang);
+                            setExamCategory(EXAM_CATEGORIES[lang][0].id);
+                          }}
+                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-bold"
+                        >
+                          <option value="ENGLISH">English</option>
+                          <option value="BANGLA">বাংলা (Bangla)</option>
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Category</label>
+                        <select
+                          value={examCategory}
+                          onChange={(e) => setExamCategory(e.target.value)}
+                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-bold"
+                        >
+                          {EXAM_CATEGORIES[examLanguage as 'ENGLISH' | 'BANGLA'].map((c) => (
+                            <option key={c.id} value={c.id}>{c.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Time Duration</label>
+                        <select
+                          value={examDurationSeconds}
+                          onChange={(e) => setExamDurationSeconds(e.target.value)}
+                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-mono"
+                        >
+                          <option value="60">1 min</option>
+                          <option value="300">5 mins</option>
+                          <option value="600">10 mins</option>
+                          <option value="900">15 mins</option>
+                          <option value="1800">30 mins</option>
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Points</label>
+                        <input
+                          type="number"
+                          value={examPoints}
+                          onChange={(e) => setExamPoints(e.target.value)}
+                          className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Deadline</label>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={examDeadline}
+                        onChange={(e) => setExamDeadline(e.target.value)}
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2 focus:outline-hidden focus:border-brand-500/40 text-[11px]"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Exam Content (optional)</label>
+                      <textarea
+                        value={examContent}
+                        onChange={(e) => setExamContent(e.target.value)}
+                        rows={4}
+                        placeholder="Leave blank to auto-generate practice text for the selected language/category..."
+                        className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 focus:outline-hidden focus:border-brand-500/40 leading-relaxed font-sans"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-brand-500 hover:bg-brand-400 text-neutral-950 font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95"
+                    >
+                      Publish Exam
+                    </button>
+                  </form>
+                </div>
+
+                {/* Published Exams list */}
+                <div className="md:col-span-2 flex flex-col gap-4">
+                  <h3 className="text-sm font-bold text-neutral-200 border-b border-neutral-800 pb-2 flex items-center gap-1.5">
+                    <FileClock size={16} className="text-brand-500" />
+                    Published Exams
+                  </h3>
+
+                  {exams.length === 0 ? (
+                    <div className="bg-neutral-900/10 border border-neutral-800 p-8 rounded-2xl text-center text-sm text-neutral-500">
+                      No published exams found. Use the creation panel to add one.
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {exams.map((exam) => (
+                        <div key={exam.id} className="p-4 rounded-xl border border-neutral-800 bg-surface/10 flex flex-col gap-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="text-sm font-bold text-neutral-200">{exam.title}</h4>
+                              <p className="text-[11px] text-neutral-500 mt-1 capitalize">{exam.category} &middot; Batch: {exam.batchName}</p>
+                            </div>
+                            <span className="text-[9px] bg-neutral-950 text-neutral-400 px-2 py-0.5 rounded border border-neutral-900 font-bold uppercase tracking-wider font-mono">
+                              {exam.language}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-3 text-xs border-t border-neutral-800/40 pt-3 text-neutral-500">
+                            <div className="flex flex-wrap gap-x-4 gap-y-1">
+                              <span>Duration: <strong className="text-neutral-300 font-mono">{Math.round(exam.durationSeconds / 60)} min</strong></span>
+                              <span>Reward: <strong className="text-neutral-300 font-mono">+{exam.points} pts</strong></span>
+                              <span>Completions: <strong className="text-brand-400 font-mono font-bold">{exam.completionsCount}</strong></span>
+                            </div>
+                            <div className="text-[11px] text-neutral-400 font-medium">
+                              Deadline: {new Date(exam.deadline).toLocaleString()}
                             </div>
                           </div>
                         </div>
@@ -1407,6 +1699,100 @@ export default function AdminPage() {
                     </table>
                   </div>
                 )}
+
+                {/* Exam Report sub-section */}
+                <div className="flex flex-col gap-4 border-t border-neutral-800 pt-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h2 className="text-base font-black text-neutral-100 flex items-center gap-2">
+                        <FileClock size={18} className="text-brand-500" />
+                        Exam Results
+                      </h2>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Select a published exam to see who has completed it and their scores.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleExportExamReportCSV}
+                      disabled={!reportExamId || examReport.length === 0}
+                      className="flex items-center gap-2 bg-brand-500 text-neutral-950 hover:bg-brand-400 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2.5 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md"
+                    >
+                      <Download size={14} />
+                      Download Exam CSV Report
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-2 max-w-xs">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Select Exam</label>
+                    <select
+                      value={reportExamId}
+                      onChange={(e) => setReportExamId(e.target.value)}
+                      className="bg-neutral-950 border border-neutral-800 text-neutral-200 rounded-lg p-2.5 text-xs font-semibold focus:outline-hidden focus:border-brand-500/40"
+                    >
+                      <option value="">— Select Exam —</option>
+                      {exams.map((exam) => (
+                        <option key={exam.id} value={exam.id}>{exam.title} ({exam.batchName})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {!reportExamId ? (
+                    <div className="p-12 text-center text-sm text-neutral-500 font-semibold bg-neutral-950/20 border border-neutral-800/40 rounded-xl">
+                      Select an exam from the dropdown above to view its results.
+                    </div>
+                  ) : examReportLoading ? (
+                    <div className="p-12 text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-400 border-r-2 border-transparent mx-auto" />
+                      <p className="text-xs text-neutral-500 mt-2 font-semibold">Loading exam results...</p>
+                    </div>
+                  ) : examReport.length === 0 ? (
+                    <div className="p-12 text-center text-sm text-neutral-500 font-semibold bg-neutral-950/20 border border-neutral-800/40 rounded-xl">
+                      No students found in this exam&apos;s batch.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto border border-neutral-800/60 rounded-xl bg-neutral-950/20">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-neutral-800/80 bg-neutral-950/40 text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
+                            <th className="py-3 px-4">Student</th>
+                            <th className="py-3 px-4">Status</th>
+                            <th className="py-3 px-4 text-right">WPM</th>
+                            <th className="py-3 px-4 text-right">Accuracy</th>
+                            <th className="py-3 px-4 text-right pr-6">Points Earned</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-900/60">
+                          {examReport.map((row) => (
+                            <tr key={row.studentId} className="hover:bg-neutral-900/30 transition-colors">
+                              <td className="py-4 px-4">
+                                <div className="font-bold text-neutral-200">{row.name}</div>
+                                <div className="text-[10px] text-neutral-500 font-semibold mt-0.5">Roll: {row.rollNumber}</div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className={`text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                                  row.status === 'COMPLETED'
+                                    ? 'bg-emerald-500/10 text-emerald-400'
+                                    : 'bg-neutral-800 text-neutral-500'
+                                }`}>
+                                  {row.status === 'COMPLETED' ? 'Completed' : 'Not Attempted'}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4 text-right font-mono font-semibold text-neutral-300">
+                                {row.wpm !== null ? Math.round(row.wpm) : '—'}
+                              </td>
+                              <td className="py-4 px-4 text-right font-mono font-semibold text-neutral-300">
+                                {row.accuracy !== null ? `${Math.round(row.accuracy)}%` : '—'}
+                              </td>
+                              <td className="py-4 px-4 text-right pr-6 font-bold font-mono text-brand-400">
+                                {row.pointsEarned} <span className="text-[9px] text-neutral-500 font-semibold uppercase">pts</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>
