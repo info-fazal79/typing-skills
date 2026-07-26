@@ -254,6 +254,44 @@ export default function AdminPage() {
     document.body.removeChild(link);
   };
 
+  const handleExportSingleExamCSV = async (examId: string, examTitle: string, examBatch: string) => {
+    try {
+      const res = await fetch(`/api/admin/exams/report?examId=${encodeURIComponent(examId)}`);
+      const json = await res.json();
+      if (!res.ok) {
+        showError(json.error || 'Failed to fetch exam details for export.');
+        return;
+      }
+      const report = json.report || [];
+      if (report.length === 0) {
+        showError('No student attempts found for this exam.');
+        return;
+      }
+      const headers = ['Student Name', 'Roll Number', 'Batch', 'WPM', 'Accuracy', 'Points Earned', 'Completion Date/Time'];
+      const rows = report.map((r: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => [
+        `"${r.name}"`,
+        `"${r.rollNumber}"`,
+        `"${examBatch}"`,
+        r.wpm !== null ? r.wpm : '',
+        r.accuracy !== null ? `${r.accuracy}%` : '',
+        r.pointsEarned,
+        r.completedAt ? new Date(r.completedAt).toLocaleString() : 'N/A',
+      ]);
+      const csvContent = [headers.join(','), ...rows.map((row: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => row.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Exam_Report_${examTitle}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showSuccess('CSV exported successfully.');
+    } catch {
+      showError('Failed to export CSV report.');
+    }
+  };
+
   // Update Student Status (Approve/Reject/Suspend)
   const handleUpdateStatus = async (studentId: string, status: string) => {
     try {
@@ -1210,9 +1248,18 @@ export default function AdminPage() {
                               <h4 className="text-sm font-bold text-neutral-200">{exam.title}</h4>
                               <p className="text-[11px] text-neutral-500 mt-1 capitalize">{exam.category} &middot; Batch: {exam.batchName}</p>
                             </div>
-                            <span className="text-[9px] bg-neutral-950 text-neutral-400 px-2 py-0.5 rounded border border-neutral-900 font-bold uppercase tracking-wider font-mono">
-                              {exam.language}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] bg-neutral-950 text-neutral-400 px-2 py-0.5 rounded border border-neutral-900 font-bold uppercase tracking-wider font-mono">
+                                {exam.language}
+                              </span>
+                              <button
+                                onClick={() => handleExportSingleExamCSV(exam.id, exam.title, exam.batchName)}
+                                className="flex items-center gap-1 bg-neutral-950 border border-neutral-800 text-[10px] text-neutral-400 hover:text-brand-400 hover:border-brand-500/40 px-2 py-1 rounded-lg font-bold transition-all active:scale-95 shadow-sm cursor-pointer"
+                              >
+                                <Download size={11} />
+                                Export CSV
+                              </button>
+                            </div>
                           </div>
 
                           <div className="flex flex-wrap items-center justify-between gap-3 text-xs border-t border-neutral-800/40 pt-3 text-neutral-500">

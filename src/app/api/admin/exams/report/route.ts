@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     const { data: attempts } = studentIds.length > 0
       ? await supabase.from('exam_attempts').select('*').eq('exam_id', examId).in('student_id', studentIds)
-      : { data: [] as { student_id: string; wpm: number | null; raw_wpm: number | null; accuracy: number | null; completed_at: string | null }[] };
+      : { data: [] as { student_id: string; wpm: number | null; raw_wpm: number | null; accuracy: number | null; points_earned: number | null; completed_at: string | null }[] };
 
     const attemptByStudent = new Map((attempts || []).map((a) => [a.student_id, a]));
 
@@ -55,7 +55,8 @@ export async function GET(req: NextRequest) {
         wpm: completed ? (attempt?.wpm ?? 0) : null,
         rawWpm: completed ? (attempt?.raw_wpm ?? 0) : null,
         accuracy: completed ? (attempt?.accuracy ?? 0) : null,
-        pointsEarned: completed ? exam.points : 0,
+        pointsEarned: completed ? (attempt?.points_earned !== null && attempt?.points_earned !== undefined ? attempt.points_earned : exam.points) : 0,
+        completedAt: completed ? attempt?.completed_at : null,
       };
     });
 

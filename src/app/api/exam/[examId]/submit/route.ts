@@ -58,12 +58,19 @@ export async function POST(
       return NextResponse.json({ error: 'This exam has already been submitted' }, { status: 409 });
     }
 
+    const studentWpm = parseFloat(wpm);
+    const studentAccuracy = parseFloat(accuracy);
+    const speedFactor = Math.min(studentWpm / 30, 1);
+    const accuracyFactor = Math.min(studentAccuracy / 90, 1);
+    const calculatedScore = Math.max(0, Math.min(Math.round(exam.points * speedFactor * accuracyFactor), exam.points));
+
     const { error: updateErr } = await supabase
       .from('exam_attempts')
       .update({
-        wpm: parseFloat(wpm),
+        wpm: studentWpm,
         raw_wpm: parseFloat(rawWpm ?? wpm),
-        accuracy: parseFloat(accuracy),
+        accuracy: studentAccuracy,
+        points_earned: calculatedScore,
         completed_at: new Date().toISOString(),
       })
       .eq('id', attempt.id);
@@ -71,18 +78,18 @@ export async function POST(
     if (updateErr) throw updateErr;
 
     let updatedPoints = userData?.points ?? user.points;
-    if (exam.points > 0) {
+    if (calculatedScore > 0) {
       const { data: pointsRows, error: pointsErr } = await supabase.rpc(
         'award_task_points',
-        { p_user_id: user.id, p_points_delta: exam.points }
+        { p_user_id: user.id, p_points_delta: calculatedScore }
       );
       if (pointsErr) throw pointsErr;
-      updatedPoints = pointsRows?.[0]?.points ?? updatedPoints + exam.points;
+      updatedPoints = pointsRows?.[0]?.points ?? updatedPoints + calculatedScore;
     }
 
     return NextResponse.json({
       message: 'Exam submitted successfully',
-      pointsEarned: exam.points,
+      pointsEarned: calculatedScore,
       newPointsTotal: updatedPoints,
     });
   } catch (error) {
